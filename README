@@ -1,4 +1,5 @@
 These are scripts that make using NCL (NCAR Command Language) easier.
+    Author: Yi-Hsuan Chen, Taiwan
 
 1. ncl_crt.sh (the latest version is ver 10.5) 
     A bash script that creates various templates of NCL.
