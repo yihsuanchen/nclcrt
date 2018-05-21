@@ -58,6 +58,9 @@
 ;           2018/05/04         ADD "ignorant_convert_2Ddata"
 ;           2018/05/10         ADD opt_2Ddata@return_type = "lat_time-lon_avg" into "ignorant_convert_2Ddata"
 ;           2018/05/11         MODIFY "ignorant_convert_2Ddata"
+;           2018/05/17         ADD "pressure_lat-timelon_avg","time_lat_lon-plev" into ignorant_convert_2Ddata 
+;           2018/05/19         ADD ms2knots in "unit_convert"
+;                              MODIFY "ignorant_convert_2Ddata"
 ;
 ;*****************************************************
 
@@ -73,13 +76,21 @@
 ;     infilename: input file name (CESM for now)
 ;     varvar    : variable in infilename
 ;     opt_2Ddata: option
-;       opt_2Ddata@return_type = "pressure_time-latlon_avg" ; input: var(time,pressure,lat,lon). return var(pressure,time) averaged over lat & lon 
-;       opt_2Ddata@plev        = (/500.,880.1000./)         ; pressure levels for interpolation
 ;
-;       opt_2Ddata@return_type = "lat_time-lon_avg"         ; input: var(time,lat,lon). return variable(latitdue,time) averaged over lon
+;      if applicable,    opt_2Ddata@time_step   = 1             ; set return time step
+;                        opt_2Ddata@do_lon_mono = True          ; set monotonic lon, e.g. change lon=-340~10 to lon=-20~10
 ;
-;       opt_2Ddata@return_type = "time-lat_lon-lon_mono"    ; input: var(time,lat,lon1). return variable(time,lat,lon2). lon2 is monotonic
-;       opt_2Ddata@time_step   = 1                          ; set read-in time step
+;        opt_2Ddata@return_type = "pressure_lat-timelon_avg"	; input: CESM var(time,lev/ilev,lat,lon). return var(pressure,lat) averaged over time & lon 
+;
+;        opt_2Ddata@return_type = "pressure_time-latlon_avg"	; input: CESM var(time,lev/ilev,lat,lon). return var(pressure,time) averaged over lat & lon 
+;           opt_2Ddata@plev        = (/500.,880.1000./)		; pressure levels (hPa) for interpolation
+;
+;        opt_2Ddata@return_type = "lat_time-lon_avg"         	; input: var(time,lat,lon). return var(latitdue,time) averaged over lon
+;
+;        opt_2Ddata@return_type = "time-lat_lon-lon_mono"    	; input: var(time,lat,lon1). return var(time,lat,lon2). lon2 is monotonic
+;
+;        opt_2Ddata@return_type = "time_lat_lon-plev"		; input: CESM var(time,lev/ilev,lat,lon). return var(time,lat,lon) at the given pressure level
+;           opt_2Ddata@plev        = 300.			; interpolate the var at this pressure level (hPa)
 ;
 ; procedure cnColors_PosNeg (varvar[*][*]:numeric, res[1]:logical, opt_cncolors[1]:logical)
 ;   assign colors to positive and negative values in NCL resources for plotting contour
@@ -804,6 +815,10 @@ begin
   fraction2percent = 100. ; fraction (0-1) to percent (%)
 
   hpa2pa  = 100.	; hPa to Pa
+  pa2hpa  = 1./hpa2pa   ; Pa to hPa
+
+  ms2knots = 1.94384    ; m/s to knots
+  knots2ms = 1./ms2knots; knots to m/s
 
   rho_water = 1000.	; water density, 1000 kg/m3
 
@@ -890,9 +905,20 @@ begin
     flag_conversion = True
   end if
 
+; *** wind velocity *** 
+  if (unit_conversion .eq. "m/s_TO_knots") then
+    var_to = var_to * ms2knots
+    flag_conversion = True
+  end if
+
 ; *** vertical velocity *** 
   if (unit_conversion .eq. "mb/hour_TO_Pa/s") then
     var_to = var_to * hpa2pa * sec2hr
+    flag_conversion = True
+  end if
+
+  if (unit_conversion .eq. "Pa/s_TO_hPa/day") then
+    var_to = var_to * pa2hpa / sec2day
     flag_conversion = True
   end if
 
@@ -2905,6 +2931,7 @@ begin
   option_execute = False
 
   case_names = (/"pressure_time-latlon_avg", \
+                 "pressure_lat-timelon_avg", \
                  "lat_time-lon_avg", \
                  "time_lat_lon-lon_mono" \
                  /)
@@ -3003,19 +3030,20 @@ begin
   end if  ; end if of "lat_time-lon_avg"
 
 ;--------------------------------------------
-; convert (time,lat,lon1) to (time,lat,lon2), lon1 is not monotonic while lon2 is. e.g. lon1 = (/350,0,10/) and lon2 is (/-10,0,10/). 
+; convert (time,lat,lon1) to (time,lat,lon2), lon1 is not monotonic while lon2 is. e.g. lon1 = (/350,0,10/) and lon2 is (/-10,0,10/).
 ;--------------------------------------------
   if ( isatt(opt, "return_type") .and. opt@return_type .eq. "time_lat_lon-lon_mono") then
 
     ;*** read the variable ***
     filetemp = addfile(infilename, "r")
-
-    if ( isatt(opt, "time_step") .and. isint(opt@time_step)) then
-      tt = opt@time_step
-      varvar_tmp = filetemp->$varvar$(tt,:,:)
-    else
       varvar_tmp = filetemp->$varvar$
-    end if
+
+    ;if ( isatt(opt, "time_step") .and. isint(opt@time_step)) then
+    ;  tt = opt@time_step
+    ;  varvar_tmp = filetemp->$varvar$(tt,:,:)
+    ;else
+    ;  varvar_tmp = filetemp->$varvar$
+    ;end if
 
     ;*** get lon ***
     if ( iscoord(varvar_tmp,"lon")) then
@@ -3028,7 +3056,7 @@ begin
       lon = filetemp&$lonname$
       option_execute = True
     else
-      print("ERROR: (ignorant_convert_2Ddata) coordinate lon/longitude is not found in return type: [time_lat_lon-lon_mono]")      
+      print("ERROR: (ignorant_convert_2Ddata) coordinate lon/longitude is not found in return type: [time_lat_lon-lon_mono]")
       print("")
       option_execute = False
     end if
@@ -3052,13 +3080,106 @@ begin
     end if
   end if ; end if of "time_lat_lon-lon_mono"
 
-;----------------------
-; return the variable
-;----------------------
-  if (option_execute) then
-    return(varvar_return)
+;--------------------------------------------
+; convert (time,lev/ilev,lat,lon) to (time,lat,lon) at a pressure level
+;   1. interpolate CESM hybrid level to the given pressure level
+;--------------------------------------------
 
-  else
+  if ( isatt(opt, "return_type") .and. opt@return_type .eq. "time_lat_lon-plev") then
+
+    ;*** read the variable ***
+    filetemp = addfile(infilename, "r")
+
+    hyai_tmp   = filetemp->hyai      ; hybrid A coefficient at layer interface
+    hybi_tmp   = filetemp->hybi      ; hybrid B coefficient at layer interface
+    hyam_tmp   = filetemp->hyam      ; hybrid A coefficient at layer midpoints
+    hybm_tmp   = filetemp->hybm      ; hybrid B coefficient at layer midpoints
+    PS_tmp     = filetemp->PS        ; surface pressures  in Pa
+    P0_tmp     = filetemp->P0        ; reference pressure in Pa
+    varvar_tmp = filetemp->$varvar$
+
+    if (iscoord(varvar_tmp,"lev")) then
+      hyaw_tmp  = hyam_tmp
+      hybw_tmp  = hybm_tmp
+    else if (iscoord(varvar_tmp,"ilev")) then
+      hyaw_tmp  = hyai_tmp
+      hybw_tmp  = hybi_tmp
+    end if
+    end if
+
+    ;*** set pressure levels for interpolation ***
+    if ( isatt(opt, "plev") .and. dimsizes(opt@plev) .eq. 1) then
+      plev_work = opt@plev
+    else
+      print("WARNING: (ignorant_convert_2Ddata) case [time_lat_lon-plev] only allow a pressure level or opt@plev is not given. Set to 500 hPa")
+      plev_work = 500.
+    end if
+
+    ; do interpolation
+    varvar_tmp_plev = vinth2p(varvar_tmp, hyaw_tmp, hybw_tmp, plev_work, PS_tmp, 1, P0_tmp/100., 1, False)
+    copy_VarAtts(varvar_tmp, varvar_tmp_plev)
+
+    varvar_return = varvar_tmp_plev(:,0,:,:)  ; return (time,lat,lon)
+    delete(varvar_return@lev_p)
+    varvar_return@pressure_level = plev_work+" hPa"
+    varvar_return@long_name = varvar_return@long_name+" at "+varvar_return@pressure_level
+
+    option_execute = True
+  end if  ; end if of "time_lat_lon-plev"
+
+;--------------------------------------------
+; convert (time,lev/ilev,lat,lon) to (plev,lat)
+;   1. interpolate CESM hybrid level to the given pressure levels
+;   2. do time & lon average
+;--------------------------------------------
+  if ( isatt(opt, "return_type") .and. opt@return_type .eq. "pressure_lat-timelon_avg") then
+
+    ;*** read the variable ***
+    filetemp = addfile(infilename, "r")
+
+    hyai_tmp   = filetemp->hyai      ; hybrid A coefficient at layer interface
+    hybi_tmp   = filetemp->hybi      ; hybrid B coefficient at layer interface
+    hyam_tmp   = filetemp->hyam      ; hybrid A coefficient at layer midpoints
+    hybm_tmp   = filetemp->hybm      ; hybrid B coefficient at layer midpoints
+    PS_tmp     = filetemp->PS        ; surface pressures  in Pa
+    P0_tmp     = filetemp->P0        ; reference pressure in Pa
+    varvar_tmp = filetemp->$varvar$
+
+    if (iscoord(varvar_tmp,"lev")) then
+      hyaw_tmp  = hyam_tmp
+      hybw_tmp  = hybm_tmp
+    else if (iscoord(varvar_tmp,"ilev")) then
+      hyaw_tmp  = hyai_tmp
+      hybw_tmp  = hybi_tmp
+    end if
+    end if
+
+    ;*** set pressure levels for interpolation ***
+    if ( isatt(opt, "plev") ) then
+      plev_work = opt@plev
+    else
+      plev_work = plev_default
+    end if
+
+    ; do interpolation
+    varvar_tmp_plev = vinth2p(varvar_tmp, hyaw_tmp, hybw_tmp, plev_work, PS_tmp, 1, P0_tmp/100., 1, False)
+    copy_VarAtts(varvar_tmp, varvar_tmp_plev)
+    ;printVarSummary(varvar_tmp_plev)
+
+    varvar_tmp_plev_tavg = dim_avg_n_Wrap(varvar_tmp_plev,0)
+    varvar_tmp_plev_itavg = dim_avg_n_Wrap(varvar_tmp_plev_tavg,2)
+    ;printVarSummary(varvar_tmp_plev_itavg)
+
+    varvar_return = varvar_tmp_plev_itavg
+    option_execute = True
+
+  end if ; end if of "pressure_lat-timelon_avg"
+
+;---------
+; default
+;---------
+  if (.not.option_execute) then
+
     if (isatt(opt, "return_type")) then 
       print("WARNING: (ignorant_convert_2Ddata) fail to execute the case ["+opt@return_type+"]")
       print("  avail case: "+ case_names)
@@ -3066,15 +3187,65 @@ begin
     end if
 
     filetemp = addfile(infilename, "r")
-    if ( isatt(opt, "time_step") .and. isint(opt@time_step)) then
-      tt = opt@time_step
-      varvar_return = filetemp->$varvar$(tt,:,:)
+    varvar_return = filetemp->$varvar$
+
+  end if
+
+;------------------------
+; option: change monotonically lon
+;------------------------
+
+  if ( isatt(opt, "do_lon_mono") .and. opt@do_lon_mono) then
+    ;*** get lon ***
+    if ( iscoord(varvar_return,"lon")) then
+      lonname = "lon"
+      lon = filetemp&$lonname$
+      option_execute1 = True
+
+    else if ( iscoord(varvar_return,"longitude")) then
+      lonname = "longitude"
+      lon = filetemp&$lonname$
+      option_execute1 = True
     else
-      varvar_return = filetemp->$varvar$
+      print("ERROR: (ignorant_convert_2Ddata) lon/longitude coordinate is not found so it cannot be processed")
+      print("")
+      option_execute1 = False
+    end if
     end if
 
-    return(varvar_return)
+    ;*** make lon monotonic ***
+    if (option_execute1) then
+      nlon = dimsizes(lon)
+      lon1 = lon
+      do i=0,nlon-1
+        if (lon(i).gt.180.) then
+          lon1(i) = lon(i) - 360.
+        end if
+      end do
+      varvar_return&$lonname$ = (/lon1/)
+    end if
+  end if ; end if of opt@do_lon_mono
+
+;----------------------------------------
+; option: select the returned time step
+;----------------------------------------
+
+  if ( isatt(opt, "time_step") .and. isint(opt@time_step)) then
+    if ( iscoord(varvar_return,"time")) then
+      tt = opt@time_step
+      varvar_return1 = varvar_return(tt,:,:)
+      delete(varvar_return)
+      varvar_return = varvar_return1
+    else
+      print("ERROR: (ignorant_convert_2Ddata) time coordinate is not found so it cannot be processed")
+      print("")
+    end if
   end if
+
+;----------------------
+; return the variable
+;----------------------
+  return(varvar_return)
 
 end
 
