@@ -1,7 +1,7 @@
 These are scripts that make using NCL (NCAR Command Language) easier.
     Author: Yi-Hsuan Chen, Taiwan, yihsuan@umich.edu
 
-1. ncl_crt.sh (the latest version is ver 10.5) 
+1. ncl_crt.sh (the latest version is ver 10.6) 
     A bash script that creates various templates of NCL.
     
     Follow three steps to use this script:
@@ -21,8 +21,9 @@ These are scripts that make using NCL (NCAR Command Language) easier.
             > ./ncl_crt.sh -func
             > ./ncl_crt.sh -plotvars
     
-2. ignorantNCL.ncl & ignorantMCL-colormaps.ncl
+2. ignorantNCL.ncl              (last update: 2018/05/19) 
+   ignorantMCL-colormaps.ncl    (last update: 2014/04/03)
     NCL files that contains some NCL functions wrote by the author.
     
-3. ncl.vim
+3. ncl.vim  (last update: 2018/05/15)
     Editor enhancements for use with NCL, https://www.ncl.ucar.edu/Applications/editor.shtml
