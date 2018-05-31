@@ -4,7 +4,7 @@ These are scripts that make using NCL (NCAR Command Language) easier.
     
 Highlighted features:
     * case "cesm-cn_map-flexible"   : draw contours over map and diff for multiple variables, multiple time steps of multiple CESM ouputs. Files and variables can be added in the NCL file.
-    * case "cesm-print-vars"        : print average, standard deviation etc. of variables that are in CESM files or that ca be diagnosed from other varialbes on screen. These processes variables can also write out to another file. 
+    * case "cesm-print-vars"        : print on screen of the average, standard deviation etc. for variables in multiple CESM files. that are in CESM files These variables can be already in CEMS outputs or be diagnosed by other varialbes. These diagnosed variables can be wrote to another file. 
 =========================================================================
 
 -------------
