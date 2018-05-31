@@ -61,6 +61,9 @@
 ;           2018/05/17         ADD "pressure_lat-timelon_avg","time_lat_lon-plev" into ignorant_convert_2Ddata 
 ;           2018/05/19         ADD ms2knots in "unit_convert"
 ;                              MODIFY "ignorant_convert_2Ddata"
+;           2018/05/30         ADD W/m22mm/day in "unit_convert"
+;           2018/05/31         ADD mm/day2m/s in "unit_convert"
+;                              MODIFY "unit_convert", not do if input units differs the unit attribute
 ;
 ;*****************************************************
 
@@ -776,9 +779,9 @@ begin
   if ( isatt(var_from,"units") .and. var_from@units .ne. unit_from) then
     print("")
     print("WARNING: (unit_convert) input unit ["+unit_from+"] differs from the unit attribute ["+var_from@units+"]")
-    print("Use the input unit: ["+unit_from+"]")
+    print("NOT DOING unit conversion")
     print("")
-    ;return(var_from)
+    return(var_from)
   end if
 
   unit_conversion = unit_from+"_TO_"+unit_to
@@ -820,7 +823,9 @@ begin
   ms2knots = 1.94384    ; m/s to knots
   knots2ms = 1./ms2knots; knots to m/s
 
-  rho_water = 1000.	; water density, 1000 kg/m3
+  rho_water = 1000.  ; water density, 1000 kg/m3
+  latentheat_evaporation  =  2.5 * 10.^6	      ; latent heat of vaporization for water, J/kg  (http://glossary.ametsoc.org/wiki/Latent_heat)
+  latentheat_condensation = 1./latentheat_evaporation ; latent heat of condensation for water, J/kg
 
 ;-----------------
 ; unit conversion
@@ -882,8 +887,18 @@ begin
     flag_conversion = True
   end if
 
+  if (unit_conversion .eq. "mm/day_TO_m/s") then
+    var_to = var_to * mm2m * sec2day
+    flag_conversion = True
+  end if
+
   if (unit_conversion .eq. "mm/hour_TO_m/s") then
     var_to = var_to * mm2m * sec2hr
+    flag_conversion = True
+  end if
+
+  if (unit_conversion .eq. "W/m2_TO_mm/day") then
+    var_to = var_to * latentheat_condensation / rho_water * m2mm * day2sec
     flag_conversion = True
   end if
   
