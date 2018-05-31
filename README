@@ -1,16 +1,23 @@
+=========================================================================
 These are scripts that make using NCL (NCAR Command Language) easier.
     Author: Yi-Hsuan Chen, Taiwan, yihsuan@umich.edu
+    
+Highlighted features:
+    * case "cesm-cn_map-flexible"   : draw contours over map and diff for multiple variables, multiple time steps of multiple CESM ouputs. Files and variables can be added in the NCL file.
+    * case "cesm-print-vars"        : print average, standard deviation etc. of variables that are in CESM files or that ca be diagnosed from other varialbes on screen. These processes variables can also write out to another file. 
+=========================================================================
 
-1. ncl_crt.sh (the latest version is ver 10.6) 
+-------------
+1. ncl_crt.sh (the latest version is 10.7) 
     A bash script that creates various templates of NCL.
     
     Follow three steps to use this script:
-    (1) edit this script and set the correct file path
+    (1) edit this script and set the correct file pathes
     (2) type "./ncl_crt.sh" to create all description statements
     (3) type "./ncl_crt.sh -h" to see all functions in this script
     
     Examples:
-        (1) create a NCL script that read varaibles var1 and var2 from file1 and file2 and make a contour plots. 
+        (1) create a NCL script that reads varaibles var1 and var2 from file1 and file2 and make a contour plot. 
             > ./ncl_crt.sh -f file1 file2 -v var1 vars -s s1 s2 -t cn test1.ncl
             
         (2) create a NCL script that use a predefined case, cesm-prec_global-2files
@@ -20,10 +27,16 @@ These are scripts that make using NCL (NCAR Command Language) easier.
             > ./ncl_crt.sh -res
             > ./ncl_crt.sh -func
             > ./ncl_crt.sh -plotvars
-    
-2. ignorantNCL.ncl              (last update: 2018/05/19) 
+        
+        (4) Change a NCL script to the format of a bash script 
+            > ./ncl_crt.sh -a test1.ncl casename bash1.sh
+
+-------------
+2. ignorantNCL.ncl              (last update: 2018/05/31) 
    ignorantMCL-colormaps.ncl    (last update: 2014/04/03)
-    NCL files that contains some NCL functions wrote by the author.
-    
+        NCL files that contains some NCL functions wrote by the author.
+
+-------------
 3. ncl.vim  (last update: 2018/05/15)
-    Editor enhancements for use with NCL, https://www.ncl.ucar.edu/Applications/editor.shtml
+        copy this file to ~/.vim/syntax and then your NCL script will be colorful.
+        Editor enhancements for use with NCL, https://www.ncl.ucar.edu/Applications/editor.shtml
