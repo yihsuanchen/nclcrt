@@ -4,6 +4,7 @@ These are scripts that make using NCL (NCAR Command Language) easier.
     
 Highlighted features:
     * case "cesm-cn_map-flexible"   : draw contours over map and diff for multiple variables, multiple time steps of multiple CESM ouputs. Files and variables can be added in the NCL file.
+    
     * case "cesm-print-vars"        : print on screen of the average, standard deviation etc. for variables in multiple CESM files. that are in CESM files These variables can be already in CEMS outputs or be diagnosed by other varialbes. These diagnosed variables can be wrote to another file. 
 =========================================================================
 
@@ -38,5 +39,5 @@ Highlighted features:
 
 -------------
 3. ncl.vim  (last update: 2018/05/15)
-        copy this file to ~/.vim/syntax and then your NCL script will be colorful.
-        Editor enhancements for use with NCL, https://www.ncl.ucar.edu/Applications/editor.shtml
+        copy this file to ~/.vim/syntax and then your NCL scripts will be colorful.
+        Ref: Editor enhancements for use with NCL, https://www.ncl.ucar.edu/Applications/editor.shtml
