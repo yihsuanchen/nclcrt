@@ -64,6 +64,9 @@
 ;           2018/05/30         ADD W/m22mm/day in "unit_convert"
 ;           2018/05/31         ADD mm/day2m/s in "unit_convert"
 ;                              MODIFY "unit_convert", not do if input units differs the unit attribute
+;           2018/06/07         ADD function gsn_csm_contour_map_siglvl
+;           2018/06/08         ADD procedure change_var_atts
+;           2018/06/14         ADD set cn fill colors in the procedure "change_var_atts"
 ;
 ;*****************************************************
 
@@ -73,6 +76,23 @@
 ;
 ; load "/home/chishin/ncarg/lib/ncarg/nclscripts/csm/gsn_code.ncl"
 ; load "/home/chishin/ncarg/lib/ncarg/nclscripts/wrf/WRFUserARW.ncl"
+;
+; procedure change_var_atts (varname[1]:string, varin, res[1]:logical, opt_chgatt[1]:logical)
+;   change units and resources of the input variable
+;     varname	: a string that decides which kind of changes will be applied
+;     varin  	: input variable
+;     res    	: a NCL res
+;     opt_chgatt: option. Turn on/off this procedure
+;
+; function gsn_csm_contour_map_siglvl(wks:graphic, varvar_any[*][*][*]:numeric, varvar_base[*][*][*]:numeric, res_var[1]:logical, res_sig[1]:logical, opt[1]:logical)
+;   plot the difference between varvar_any and varvar_base over map and overlay the significance level from the t-test results
+;     wks		: work station
+;     varvar_any	: a three dimension variable (time,lat,lon)
+;     varvar_base	: a three dimension variable (time,lat,lon)
+;     res_var		: NCL res for plotting varvar_any minus varvar_base
+;     res_sig		: NCL res for plotting significance level
+;     opt 		: options
+;	opt@siglvl = 0.01  ; set significance level (the default is 0.05)
 ;
 ; function ignorant_convert_2Ddata (infilename[1]:string, varvar[1]:string, opt_2Ddata:logical)
 ;   convert input dataset to 2-D dataset for plotting a contour
@@ -332,7 +352,71 @@
 undef("cnColors_PosNeg")
 procedure cnColors_PosNeg (varvar[*][*]:numeric, res[1]:logical, opt_cncolors[1]:logical)
 begin
+
+;-------------
+; initialize
+;-------------
+  option_cmap = "default"
+
+  if ( isatt(varvar,"long_name") ) then
+    longname = varvar@long_name
+  else
+    longname = "slkdjflksjdfljasldfjlaks"
+  end if
+
+  ;if (\
+  ;        longname.eq."" \
+  ;   .or. longname.eq."" \
+  ;   )
+  ;  option_cmap = ""
+  ;end if 
+
+  ;if ( \
+  ;         .not.ismissing(str_match(longname,"")) \
+  ;    .or. .not.ismissing(str_match(longname,"")) \
+  ;   ) then
+  ;   option_cmap = ""
+  ;end if
+
+  if ( \
+           .not.ismissing(str_match(longname,"Vertical velocity")) \
+      .or. .not.ismissing(str_match(longname,"OMEGA")) \
+     ) then
+     option_cmap = "red_blue"
+  end if
+
+  if ( \
+           .not.ismissing(str_match(longname,"Zonal wind")) \
+      .or. .not.ismissing(str_match(longname,"zonal wind")) \
+      .or. .not.ismissing(str_match(longname,"Meridional wind")) \
+      .or. .not.ismissing(str_match(longname,"meridional wind")) \
+      .or. .not.ismissing(str_match(longname,"U at")) \
+      .or. .not.ismissing(str_match(longname,"V at")) \
+     ) then
+     option_cmap = "purple_green"
+  end if
   
+  if (\
+          longname.eq."Convective precipitation rate (liq + ice)" \
+     .or. longname.eq."Convective precipitation rate from ZM deep" \
+     .or. longname.eq."Large-scale (stable) precipitation rate (liq + ice)" \
+     .or. longname.eq."Convective snow rate (water equivalent)" \
+     .or. longname.eq."Shallow Convection precipitation rate" \
+     .or. longname.eq."Large-scale (stable) snow rate (water equivalent)" \
+     .or. longname.eq."Total (convective and large-scale) precipitation rate (liq + ice)" \
+     )
+    option_cmap = "dry_wet"
+  end if
+
+  if ( \
+          .not.ismissing(str_match(longname,"liquid water path")) \
+     .or. .not.ismissing(str_match(longname,"ice water path")) \
+     .or. .not.ismissing(str_match(longname,"cloud water path")) \
+     .or. .not.ismissing(str_match(longname,"total water path")) \
+     ) then
+     option_cmap = "dry_wet"
+  end if
+
 ;----------------
 ; program start
 ;----------------
@@ -342,13 +426,45 @@ begin
   opt_work@cnlevels_predefine = False    ; True  - contour levels are given in res
   ;opt_work@cnlevels_predefine = True      False - contour levels will be computed in this procedure
 
-  opt_work@colormap_positive = "WhiteYellowOrangeRed"  ; colormap for plotting positive colors
-  opt_work@colormap_positive_index_start = 2           ; the least positive color
-  opt_work@colormap_positive_index_end = 999           ; the most  positive color
+  if (option_cmap .eq. "dry_wet") then
+    opt_work@colormap_positive = "MPL_YlGnBu"
+    ;opt_work@colormap_positive_index_start = 2       ; the least positive color
+    ;opt_work@colormap_positive_index_end = 999       ; the most  positive color
 
-  opt_work@colormap_negative = "MPL_GnBu"              ; colormap for plotting negative colors
-  opt_work@colormap_negative_index_start = 127         ; the most  negative color
-  opt_work@colormap_negative_index_end = 2             ; the least negative color
+    opt_work@colormap_negative = "MPL_YlOrBr"
+    opt_work@colormap_negative_index_start = 120     ; the most  negative color
+    opt_work@colormap_negative_index_end = 2         ; the least negative color
+  end if
+
+  if (option_cmap .eq. "purple_green") then
+    opt_work@colormap_positive = "MPL_Purples"       ; colormap for plotting positive colors
+    opt_work@colormap_positive_index_start = 2       ; the least positive color
+    opt_work@colormap_positive_index_end = 999       ; the most  positive color
+
+    opt_work@colormap_negative = "MPL_Greens"        ; colormap for plotting negative colors
+    opt_work@colormap_negative_index_start = 120     ; the most  negative color
+    opt_work@colormap_negative_index_end = 2         ; the least negative color
+  end if
+
+  if (option_cmap .eq. "red_blue") then
+    opt_work@colormap_positive = "NCV_blu_red"         ; colormap for plotting positive colors
+    opt_work@colormap_positive_index_start = 123       ; the least positive color
+    opt_work@colormap_positive_index_end = 2           ; the most  positive color
+
+    opt_work@colormap_negative = "NCV_blu_red"         ; colormap for plotting negative colors
+    opt_work@colormap_negative_index_start = 255       ; the most  negative color
+    opt_work@colormap_negative_index_end = 137         ; the least negative color
+  end if
+
+  if (option_cmap .eq. "default") then
+    opt_work@colormap_positive = "WhiteYellowOrangeRed"  ; colormap for plotting positive colors
+    opt_work@colormap_positive_index_start = 2           ; the least positive color
+    opt_work@colormap_positive_index_end = 999           ; the most  positive color
+
+    opt_work@colormap_negative = "MPL_GnBu"              ; colormap for plotting negative colors
+    opt_work@colormap_negative_index_start = 127         ; the most  negative color
+    opt_work@colormap_negative_index_end = 2             ; the least negative color
+  end if
 
   copy_VarAtts(opt_cncolors, opt_work)
 
@@ -3261,6 +3377,331 @@ begin
 ; return the variable
 ;----------------------
   return(varvar_return)
-
 end
 
+;#############################################
+undef("gsn_csm_contour_map_siglvl")
+function gsn_csm_contour_map_siglvl(wks:graphic, varvar_any[*][*][*]:numeric, varvar_base[*][*][*]:numeric, res_var[1]:logical, res_sig[1]:logical, opt[1]:logical)
+begin
+
+;*************
+; initialize
+;*************
+
+; take difference
+  varvar_anyMbase = diff(varvar_any,varvar_base)
+  varvar_anyMbase_avg = dim_avg_n_Wrap(varvar_anyMbase,0)
+
+; get lat/lon dimemsion
+  nlat = -1
+  nlon = -1
+
+  ntime = dimsizes(varvar_base(:,0,0))
+
+  if ( isdim(varvar_base,"lat") ) then
+    nlat = dimsizes(varvar_base&lat)
+  end if
+
+  if ( isdim(varvar_base,"lon") ) then
+    nlon = dimsizes(varvar_base&lon)
+  end if
+
+; get significance level
+  if ( opt .and. isatt(opt,"siglvl")  ) then
+    siglvl = opt@siglvl
+  else
+    siglvl = 0.05
+  end if
+
+; parameters for ttest
+  siglev = 100.*(1.-siglvl)
+  iflag= False
+
+; res for plot
+  res_var_work = True
+    opt1 = True
+    cnColors_PosNeg(varvar_anyMbase_avg,res_var_work,opt1)
+  copy_VarAtts(res_var,res_var_work)
+
+; res for siglvl
+  res_sig_work = True
+  res_sig_work@cnLevelSelectionMode = "ExplicitLevels"
+  res_sig_work@cnLevels = (/siglev/)
+
+  res_sig_work@cnFillOn = True
+  res_sig_work@cnLinesOn = False
+  res_sig_work@cnLineLabelsOn = False
+  res_sig_work@cnInfoLabelOn = False
+
+  res_sig_work@cnLineThicknessF = 3.
+
+  res_sig_work@cnMonoFillColor = False
+  res_sig_work@cnFillColors = (/-1,1/)
+
+  res_sig_work@cnMonoFillPattern = False
+  res_sig_work@cnFillPatterns = (/0,4/)   ; slash
+  ;res_sig_work@cnFillPatterns = (/0,17/)  ; dotted
+
+  copy_VarAtts(res_sig,res_sig_work)
+
+  if ( .not.isatt(res_var_work, "tiMainString")) then
+    res_var_work@tiMainString = "Significance level at "+siglev+"% for "+ntime+" steps"
+  end if
+
+;************ 
+; do t-test
+;************
+  prob = varvar_any(0,:,:)
+  prob@long_name = "significance level"
+  prob@units = "NONE"
+
+  do j=0,nlat-1
+  do i=0,nlon-1
+    xtmp = varvar_any(:,j,i)
+    ytmp = varvar_base(:,j,i)
+
+  ;*** compute time-average and variance ***
+    xAve = dim_avg_Wrap (xtmp)              ; calculate means at each grid point 
+    yAve = dim_avg_Wrap (ytmp)
+    xVar = dim_variance_Wrap (xtmp)         ; calculate variances
+    yVar = dim_variance_Wrap (ytmp)
+
+  ;*** get size ***
+    xN = dimsizes(xtmp)
+    yN = dimsizes(ytmp)
+
+    prob(j,i) = ttest(xAve,xVar,xN, yAve,yVar,yN, iflag, False)
+  end do
+  end do
+
+  alpha = prob
+  alpha = 100.*(1.-prob) ; A significance of 0.05 returned by ttest would yield 95% for alpha. This is often done for plotting.
+                         ; ref: http://www.ncl.ucar.edu/Document/Functions/Built-in/ttest.shtml, Example 2
+
+  ;**********************
+  ; set plot variables
+  ;**********************
+
+  varvar_anyMbase_siglev = alpha
+
+  ;********
+  ; plot
+  ;********
+
+  plot_anyMbase_siglev = gsn_csm_contour_map_overlay(wks, varvar_anyMbase_avg, varvar_anyMbase_siglev, res_var_work, res_sig_work)
+
+  return(plot_anyMbase_siglev)
+end
+
+;#############################################
+undef("change_var_atts")
+procedure change_var_atts (varname[1]:string, varin, res[1]:logical, opt_chgatt[1]:logical)
+begin
+
+if (opt_chgatt) then
+
+;*************
+; initialize
+;*************
+
+;********************
+; change fill colors
+;********************
+  opt_chgcolors = False
+
+  if ( isatt(varin,"long_name") ) then
+    longname = varin@long_name
+  else
+    longname = "slkdjflksjdfljasldfjlaks"
+  end if
+
+  if ( \
+           .not.ismissing(str_match(longname,"Vertical velocity")) \
+      .or. .not.ismissing(str_match(longname,"OMEGA")) \
+     ) then
+     option_cmap = "red_blue"
+     opt_chgcolors = True
+  end if
+
+  if ( \
+           .not.ismissing(str_match(longname,"Zonal wind")) \
+      .or. .not.ismissing(str_match(longname,"zonal wind")) \
+      .or. .not.ismissing(str_match(longname,"Meridional wind")) \
+      .or. .not.ismissing(str_match(longname,"meridional wind")) \
+      .or. .not.ismissing(str_match(longname,"U at")) \
+      .or. .not.ismissing(str_match(longname,"V at")) \
+     ) then
+     option_cmap = "purple_green"
+     opt_chgcolors = True
+  end if
+
+  if (opt_chgcolors) then
+
+    opt_work = True
+    opt_work@max_levels = 15  ; level for using function nice_mnmxintvl
+
+    opt_work@cnlevels_predefine = False    ; True  - contour levels are given in res
+    ;opt_work@cnlevels_predefine = True      False - contour levels will be computed in this procedure
+
+    if (option_cmap .eq. "dry_wet") then
+      opt_work@colormap_positive = "MPL_YlGnBu"
+      ;opt_work@colormap_positive_index_start = 2       ; the least positive color
+      ;opt_work@colormap_positive_index_end = 999       ; the most  positive color
+
+      opt_work@colormap_negative = "MPL_YlOrBr"
+      opt_work@colormap_negative_index_start = 120     ; the most  negative color
+      opt_work@colormap_negative_index_end = 2         ; the least negative color
+    end if
+
+    if (option_cmap .eq. "purple_green") then
+      opt_work@colormap_positive = "MPL_Purples"       ; colormap for plotting positive colors
+      opt_work@colormap_positive_index_start = 2       ; the least positive color
+      opt_work@colormap_positive_index_end = 999       ; the most  positive color
+  
+      opt_work@colormap_negative = "MPL_Greens"        ; colormap for plotting negative colors
+      opt_work@colormap_negative_index_start = 120     ; the most  negative color
+      opt_work@colormap_negative_index_end = 2         ; the least negative color
+    end if
+  
+    if (option_cmap .eq. "red_blue") then
+      opt_work@colormap_positive = "NCV_blu_red"         ; colormap for plotting positive colors
+      opt_work@colormap_positive_index_start = 123       ; the least positive color
+      opt_work@colormap_positive_index_end = 2           ; the most  positive color
+  
+      opt_work@colormap_negative = "NCV_blu_red"         ; colormap for plotting negative colors
+      opt_work@colormap_negative_index_start = 255       ; the most  negative color
+      opt_work@colormap_negative_index_end = 137         ; the least negative color
+    end if
+  
+    if (option_cmap .eq. "default") then
+      opt_work@colormap_positive = "WhiteYellowOrangeRed"  ; colormap for plotting positive colors
+      opt_work@colormap_positive_index_start = 2           ; the least positive color
+      opt_work@colormap_positive_index_end = 999           ; the most  positive color
+  
+      opt_work@colormap_negative = "MPL_GnBu"              ; colormap for plotting negative colors
+      opt_work@colormap_negative_index_start = 127         ; the most  negative color
+      opt_work@colormap_negative_index_end = 2             ; the least negative color
+    end if
+  
+    copy_VarAtts(opt_chgatt, opt_work)
+
+    ndim = dimsizes(dimsizes(varin))
+    if (ndim.eq.2) then
+      varin_temp1 = varin
+    else if (ndim.eq.3) then
+      varin_temp1 = dim_avg_n_Wrap(varin,0)
+    else if (ndim.eq.4) then
+      varin_temp0 = dim_avg_n_Wrap(varin,0)
+      varin_temp1 = dim_avg_n_Wrap(varin_temp0,0)
+    end if
+    end if
+    end if
+
+    cnColors_PosNeg(varin_temp1, res, opt_work)
+
+  end if ; end if of opt_chgcolors
+  
+;***************
+; change units
+;***************
+  if (varname.eq."PRECC" .or. varname.eq."PRECL" .or. varname.eq."PRECT") then
+    if ( isatt(varin, "units") .and. varin@units.eq."m/s") then
+      varin  = unit_convert(varin,"m/s","mm/day")
+    end if
+  end if
+
+;***********************
+; change units string
+;***********************
+;
+  if (varin@units .eq. "W/m2") then
+    res@gsnRightString = "W m~S~-2"
+  end if
+
+  if (varin@units .eq. "gram/m2") then
+    res@gsnRightString = "g m~S~-2"
+  end if
+
+;*************************
+; change variables string
+;*************************
+;
+  if (varname.eq."CLDLOW") then
+    res@gsnLeftString = "Low cloud fraction"
+  end if
+
+  if (varname.eq."FLNS") then
+    res@gsnLeftString = "Net Up LW flux at the surface"
+  end if
+
+  if (varname.eq."FLNSC") then
+    res@gsnLeftString = "clrsky Surf Net Up LW flux"
+  end if
+
+  if (varname.eq."FLUT") then
+    res@gsnLeftString = "Outgoing LW radiation"
+  end if
+
+  if (varname.eq."FLUTC") then
+    res@gsnLeftString = "clrsky Outgoing LW radiation"
+  end if
+
+  if (varname.eq."FLDS") then
+    res@gsnLeftString = "Dn LW flux at the surf"
+  end if
+
+  if (varname.eq."FLDSC") then
+    res@gsnLeftString = "clrsky Dn LW flux at the surf"
+  end if
+
+  if (varname.eq."FSDS") then
+    res@gsnLeftString = "Dn SW flux at the surf"
+  end if
+
+  if (varname.eq."FSDSC") then
+    res@gsnLeftString = "clr-sky Dn SW flux at the surf"
+  end if
+
+  if (varname.eq."LHFLX") then
+    res@gsnLeftString = "Latent heat flux"
+  end if
+
+  if (varname.eq."OMEGA500") then
+    res@gsnLeftString = "~F33~w~F~ at 500 hPa"
+  end if
+
+  if (varname.eq."PRECC") then
+    res@gsnLeftString = "Conv Prec"
+  end if
+
+  if (varname.eq."PRECL") then
+    res@gsnLeftString = "Stratiform Prec"
+  end if
+
+  if (varname.eq."PRECT") then
+    res@gsnLeftString = "Total Prec"
+  end if
+
+  if (varname.eq."RADCOOL_TOA_TO_SURF") then
+    res@gsnLeftString = "Net Column Rad cooling"
+  end if
+
+  if (varname.eq."SHFLX") then
+    res@gsnLeftString = "Sensible heat flux"
+  end if
+
+  if (varname.eq."TS") then
+    res@gsnLeftString = "Surf Rad temperature"
+  end if
+
+  if (varname.eq."TREFHT") then
+    res@gsnLeftString = "Surface air temperature"
+  end if
+
+  if (varname.eq."TGCLDLWP") then
+    res@gsnLeftString = "Grid-box liquid water path"
+  end if
+
+end if ; end if of opt_chgatt
+
+end

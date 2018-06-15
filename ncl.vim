@@ -14,7 +14,9 @@ endif
 
 " yihsuan add function and resources
 " reference: https://www.ncl.ucar.edu/Applications/editor.shtml
-syn keyword nclBUILTIN divide plus multiply diff lat_wgt_avg binmap unit_convert taylor_diagram binmap2 sort_for_xyplot cnColors_PosNeg
+"
+" last update: 2018/06/14, change_var_atts
+syn keyword nclBUILTIN divide plus multiply diff lat_wgt_avg binmap unit_convert taylor_diagram binmap2 sort_for_xyplot cnColors_PosNeg change_var_atts
 
 syn keyword nclGSN gsn_csm_contour_map_avg ignorant_get_var_files ignorant_combine_colormaps ignorant_xy ignorant_merge_colormaps ignorant_select_colormap ignorant_define_colormap ignorant_contour ignorant_nc_contour ignorant_get_vars_file ignorant_convert_2Ddata
 
