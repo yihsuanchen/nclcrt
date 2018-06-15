@@ -63,7 +63,7 @@
 #                         REWRITE -m diff     to diff-[a suffix OR STRING]-[v1,v2,...]
 #                         ADD -m option: dimavg-[STRING]-[v1,v2...]
 #                         ADD command parameter -d OR -dim
-#   2014/10/06  ver  6.0, ADD write plot funtion & panel codes
+#    2014/10/06  ver  6.0, ADD write plot funtion & panel codes
 #                         DIVIDE panel resources from xy,cn to independent code
 #    2014/10/15  ver  6.1, ADD check part for plot res & plot type
 #                         ADD plot_type [type of plot, ex: xy,cn] 
@@ -173,6 +173,7 @@
 #    2018/06/08  ver 10.8  MODIFY case "cesm-cn_map-flexible" with a NCL procedure "change_var_atts"
 #    2018/06/10  ver 10.8  Update description of the case "cesm-print-vars"
 #    2018/06/12  ver 10.9  ADD choice6 in the case "cesm-cn_map-flexible"
+#    2018/06/15  ver 10.9  MODIFY variable interpolation part in the case "cesm-print-vars"
 #
 #  Author:
 #    Yi-Hsuan Chen, Taiwan
@@ -20581,20 +20582,19 @@ EOF
   suffixes = infilenames
   suffixes = (/${suffix01}/)
 
+  ;varnames@writeout = True	; write these diagnosed variables into input files
+  varnames@writeout = False
+
   varnames = (/${var01}/)
-  ;varnames = (/"T850","T950","Q950","OMEGA500"/)
+  ;varnames = (/"U 300","V 600","T 210","Q 550","CLOUD 900"/)
   ;varnames = (/"FLUS","FLDS","FLNS","FSUS","FSDS","FSNS","LHFLX","SHFLX","RADSURF"/)   ; surface energy budget
   ;varnames = (/"FLUT","FSNTOA","RADTOA"/)                                              ; TOA energy budget
   ;varnames = (/"FLNT","FSNT","RADMT"/)                                                 ; Model top energy budget
   ;varnames = (/"FLUT","FLUTC","LWCF","FSNTOA","FSNTOAC","SWCF"/)			; LW & SW cloud forcing at the TOA and surface
   ;varnames = (/"FLDS","FLDSC","LWCF_SURF","FSDS","FSDSC","SWCF_SURF"/)
 
-
   ;varnames_diagnose = (/"FLUS","FSUS","FSDTOA","RADMT","RADTOA","PRECT","RADCOOL_MT_TO_SURF","LWCOOL_MT_TO_SURF","SWWARM_MT_TO_SURF","RADSURF","OMEGA500","RADCOOL_TOA_TO_SURF","LWCOOL_TOA_TO_SURF","SWWARM_TOA_TO_SURF","LWCF_SURF"/) 
   nvar = dimsizes(varnames)
-
-  ;varnames@writeout = True	; write these diagnosed variables into input files
-  varnames@writeout = False
 
   ; available varnames_diagnose, update 03/02/2018
   ;   EVAP			: Evaporation rate, converted from latent heat flux
@@ -20616,8 +20616,7 @@ EOF
   ;   SWCF_SURF			: SW cloud forcing at the surface, +:warming, -: cooling
   ;   SWWARM_TOA_TO_SURF 	: SW radiative warming rate betweem the TOA and surface, +warming, -cooling
   ;   SWWARM_MT_TO_SURF 	: SW radiative warming rate betweem model top and surface, +warming, -cooling
-  ;   T at a pressure level	: Temperautre at a certain pressure level, e.g. T850
-  ;   Q at a pressure level	: Specific humidity at a certain pressure level, e.g. Q950
+  ;   [var]" "[number]          : a variable at a certain pressure level, e.g. "T 850", "Q 500"
 
 ;---------------
 ; program start
@@ -20646,30 +20645,13 @@ do vv=0,nvar-1
 
   ;*** variables for interpolation ***
   option_interp = False
-  if (varname.eq."T850") then
+
+  if (.not.ismissing(str_match(varname," "))) then
+    string11 = str_split(varname," ")
+    var_interp    = string11(0)
+    plev_interp   = tofloat(string11(1))
+    varname = string11(0)+string11(1)
     option_interp = True
-    var_interp    = "T"
-    plev_interp   = 850.
-  end if
-  if (varname.eq."T950") then
-    option_interp = True
-    var_interp    = "T"
-    plev_interp   = 950.
-  end if
-  if (varname.eq."Q850") then
-    option_interp = True
-    var_interp    = "Q"
-    plev_interp   = 850.
-  end if
-  if (varname.eq."Q950") then
-    option_interp = True
-    var_interp    = "Q"
-    plev_interp   = 950.
-  end if
-  if (varname.eq."OMEGA500") then
-    option_interp = True
-    var_interp    = "OMEGA"
-    plev_interp   = 500.
   end if
     
 do ff=0,nfile-1
