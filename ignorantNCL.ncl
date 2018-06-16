@@ -67,6 +67,7 @@
 ;           2018/06/07         ADD function gsn_csm_contour_map_siglvl
 ;           2018/06/08         ADD procedure change_var_atts
 ;           2018/06/14         ADD set cn fill colors in the procedure "change_var_atts"
+;           2018/06/16         MODIFY longname setup in the case "cnColors_PosNeg"
 ;
 ;*****************************************************
 
@@ -397,22 +398,15 @@ begin
   end if
   
   if (\
-          longname.eq."Convective precipitation rate (liq + ice)" \
-     .or. longname.eq."Convective precipitation rate from ZM deep" \
-     .or. longname.eq."Large-scale (stable) precipitation rate (liq + ice)" \
-     .or. longname.eq."Convective snow rate (water equivalent)" \
-     .or. longname.eq."Shallow Convection precipitation rate" \
-     .or. longname.eq."Large-scale (stable) snow rate (water equivalent)" \
-     .or. longname.eq."Total (convective and large-scale) precipitation rate (liq + ice)" \
+           .not.ismissing(str_match(longname,"precipitation rate")) \
+      .or. .not.ismissing(str_match(longname,"Precipitation rate")) \
+      .or. .not.ismissing(str_match(longname,"snow rate")) \
      )
     option_cmap = "dry_wet"
   end if
 
   if ( \
-          .not.ismissing(str_match(longname,"liquid water path")) \
-     .or. .not.ismissing(str_match(longname,"ice water path")) \
-     .or. .not.ismissing(str_match(longname,"cloud water path")) \
-     .or. .not.ismissing(str_match(longname,"total water path")) \
+          .not.ismissing(str_match(longname,"water path")) \
      ) then
      option_cmap = "dry_wet"
   end if
