@@ -9,7 +9,7 @@ Highlighted features:
 =========================================================================
 
 -------------
-1. ncl_crt.sh (the latest version is 10.9) 
+1. ncl_crt.sh (the latest version is 11.0) 
     A bash script that creates various templates of NCL.
     
     Follow three steps to use this script:
