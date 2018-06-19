@@ -20402,9 +20402,6 @@ EOF
   suffixes = infilenames
   suffixes = (/${suffix01}/)
 
-  ;varnames@writeout = True	; write these diagnosed variables into input files
-  varnames@writeout = False
-
   varnames = (/${var01}/)
   ;varnames = (/"U 300","V 600","T 210","Q 550","CLOUD 900"/)
   ;varnames = (/"FLUS","FLDS","FLNS","FSUS","FSDS","FSNS","LHFLX","SHFLX","RADSURF"/)   ; surface energy budget
@@ -20412,6 +20409,9 @@ EOF
   ;varnames = (/"FLNT","FSNT","RADMT"/)                                                 ; Model top energy budget
   ;varnames = (/"FLUT","FLUTC","LWCF","FSNTOA","FSNTOAC","SWCF"/)			; LW & SW cloud forcing at the TOA and surface
   ;varnames = (/"FLDS","FLDSC","LWCF_SURF","FSDS","FSDSC","SWCF_SURF"/)
+
+  ;varnames@writeout = True	; write these diagnosed variables into input files
+  varnames@writeout = False
 
   ;varnames_diagnose = (/"FLUS","FSUS","FSDTOA","RADMT","RADTOA","PRECT","RADCOOL_MT_TO_SURF","LWCOOL_MT_TO_SURF","SWWARM_MT_TO_SURF","RADSURF","OMEGA500","RADCOOL_TOA_TO_SURF","LWCOOL_TOA_TO_SURF","SWWARM_TOA_TO_SURF","LWCF_SURF"/) 
   nvar = dimsizes(varnames)
