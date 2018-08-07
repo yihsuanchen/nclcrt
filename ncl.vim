@@ -15,12 +15,12 @@ endif
 " yihsuan add function and resources
 " reference: https://www.ncl.ucar.edu/Applications/editor.shtml
 "
-" last update: 2018/06/14, change_var_atts
+" last update: 2018/08/04
 syn keyword nclBUILTIN divide plus multiply diff lat_wgt_avg binmap unit_convert taylor_diagram binmap2 sort_for_xyplot cnColors_PosNeg change_var_atts
 
-syn keyword nclGSN gsn_csm_contour_map_avg ignorant_get_var_files ignorant_combine_colormaps ignorant_xy ignorant_merge_colormaps ignorant_select_colormap ignorant_define_colormap ignorant_contour ignorant_nc_contour ignorant_get_vars_file ignorant_convert_2Ddata
+syn keyword nclGSN gsn_csm_contour_map_avg ignorant_get_var_files ignorant_combine_colormaps ignorant_xy ignorant_merge_colormaps ignorant_select_colormap ignorant_define_colormap ignorant_contour ignorant_nc_contour ignorant_get_vars_file ignorant_convert_2Ddata ignorant_convert_1Ddata gsn_csm_contour_map_siglvl
 
-syn keyword nclResource max_levels cnlevels_predefine colormap_positive colormap_positive_index_start colormap_positive_index_end colormap_negative colormap_negative_index_start colormap_negative_index_end LatWeighted MeanFormat MeanPrefix return_type plev time_step legend_mean 
+syn keyword nclResource max_levels cnlevels_predefine colormap_positive colormap_positive_index_start colormap_positive_index_end colormap_negative colormap_negative_index_start colormap_negative_index_end LatWeighted MeanFormat MeanPrefix return_type plev time_step legend_mean chg_cncolors update_res x_coordinate 
 " yihsuan add function and resources
 
 

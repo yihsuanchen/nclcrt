@@ -68,6 +68,16 @@
 ;           2018/06/08         ADD procedure change_var_atts
 ;           2018/06/14         ADD set cn fill colors in the procedure "change_var_atts"
 ;           2018/06/16         MODIFY longname setup in the case "cnColors_PosNeg"
+;           2018/07/11         MODIFY ignorant_convert_2Ddata to make lon conversion automatically
+;           2018/07/15         MODIFY reture_type name of ignorant_convert_2Ddata
+;           2018/07/26         DEBUG in "cnColors_PosNeg", moving CopyAtt otherwise the previous cmnmap will override the correct one
+;                              CHANGE dry_wet colors in "cnColors_PosNeg"
+;           2018/08/02         DEBUG gsn_csm_contour_map_siglvl, user can decide whether use cnColors_PosNeg 
+;           2018/08/04         ADD opt_chgatt@chg_cncolors in "change_var_atts"
+;           2018/08/04         ADD a new procedure "ignorant_convert_1Ddata"
+;           2018/08/05         MODIFY "ignorant_convert_1Ddata"
+;           2018/08/06         ADD "tlji2pn_crossji" into ignorant_convert_2Ddata
+;           2018/08/06         MIDIFY "change_var_atts"
 ;
 ;*****************************************************
 
@@ -84,6 +94,7 @@
 ;     varin  	: input variable
 ;     res    	: a NCL res
 ;     opt_chgatt: option. Turn on/off this procedure
+;       opt_chgatt@chg_cncolors = True/False ; turn on/off changing contour colors
 ;
 ; function gsn_csm_contour_map_siglvl(wks:graphic, varvar_any[*][*][*]:numeric, varvar_base[*][*][*]:numeric, res_var[1]:logical, res_sig[1]:logical, opt[1]:logical)
 ;   plot the difference between varvar_any and varvar_base over map and overlay the significance level from the t-test results
@@ -93,7 +104,31 @@
 ;     res_var		: NCL res for plotting varvar_any minus varvar_base
 ;     res_sig		: NCL res for plotting significance level
 ;     opt 		: options
-;	opt@siglvl = 0.01  ; set significance level (the default is 0.05)
+;	opt@siglvl = 0.01  		; set significance level (the default is 0.05)
+;       opt@cnColors_PosNeg = False	; turn off cnColors_PosNeg
+;
+; procedure ignorant_convert_1Ddata (infilenames[*]:string, varvars[*]:string, res[1]:logical, opt_1Ddata[1]:logical)
+;   convert input variable to 1-D for plotting a XY plot
+;     Return	: var_xx = opt@var_xx
+;		: var_yy = opt@var_yy
+;		:   if opt@var_xx_number = True, return var_xx = 0.,1.,2.,...N
+;		:   if opt@var_yy_number = True, return var_yy = 0.,1.,2.,...N
+;
+;     infilename: input file name (CESM for now)
+;     varvar    : variables in infilename
+;     opt_1Ddata: option
+;       opt_1Ddata@return_type = "vtji2t_vt_avgji"	; input: CESM (variables,time,lat,lon), return: var_xx=(time), var_yy=(varible,time), averaged over lat and lon
+;       opt_1Ddata@return_type = "vtlji2vp_p_avgtji"	; input: CESM (variables,lev/ilev,time,lat,lon), return: var_xx=(variable,pressure), var_yy=(pressure), averaged over time, lat, and lon
+;       opt_1Ddata@return_type = "ftlji2fp_p_avgtji"	; input: CESM (files,time,lev/ilev,lat,lon), return: var_xx=(files,pressure), var_yy=(pressure), averaged over time, lat, and lon
+;       opt_1Ddata@return_type = "ftji2t_ft_avgji"	; input: CESM (files,time,lat,lon), return: var_xx=(time), var_yy=(files,time), averaged over lat and lon
+;
+;       opt_1Ddata@@plev = (/250., 300., 350., 400., 450., 500./)	; pressure levels for interpolation
+;
+;       opt_1Ddata@@update_res = False	; turn off updating res
+;
+;       opt_1Ddata@x_coordinate = "12months_number" 		; set x-coordinate to 1,2,3,...,12
+;       opt_1Ddata@x_coordinate = "12months_1characters" 	; set x-coordiante to J,F,M,...,D
+;       opt_1Ddata@x_coordinate = "12months_3characters" 	; set x-coordinate to Jan,Feb,Mar,...,Dec
 ;
 ; function ignorant_convert_2Ddata (infilename[1]:string, varvar[1]:string, opt_2Ddata:logical)
 ;   convert input dataset to 2-D dataset for plotting a contour
@@ -101,20 +136,28 @@
 ;     varvar    : variable in infilename
 ;     opt_2Ddata: option
 ;
-;      if applicable,    opt_2Ddata@time_step   = 1             ; set return time step
-;                        opt_2Ddata@do_lon_mono = True          ; set monotonic lon, e.g. change lon=-340~10 to lon=-20~10
+;      if applicable,    opt_2Ddata@time_step   = 1	; set return time step
 ;
-;        opt_2Ddata@return_type = "pressure_lat-timelon_avg"	; input: CESM var(time,lev/ilev,lat,lon). return var(pressure,lat) averaged over time & lon 
+;        opt_2Ddata@return_type = "tlji2pj_avgti"	; input: CESM var(time,lev/ilev,lat,lon). return var(pressure,lat) averaged over time & lon 
 ;
-;        opt_2Ddata@return_type = "pressure_time-latlon_avg"	; input: CESM var(time,lev/ilev,lat,lon). return var(pressure,time) averaged over lat & lon 
-;           opt_2Ddata@plev        = (/500.,880.1000./)		; pressure levels (hPa) for interpolation
+;        opt_2Ddata@return_type = "tlji2pt_avgji"	; input: CESM var(time,lev/ilev,lat,lon). return var(pressure,time) averaged over lat & lon 
+;           opt_2Ddata@plev        = (/500.,880.1000./)	;   pressure levels (hPa) for interpolation
 ;
-;        opt_2Ddata@return_type = "lat_time-lon_avg"         	; input: var(time,lat,lon). return var(latitdue,time) averaged over lon
+;        opt_2Ddata@return_type = "tlji2tji_intp"	; input: CESM var(time,lev/ilev,lat,lon). return var(time,lat,lon) at the given pressure level
+;           opt_2Ddata@plev        = 300.		;   interpolate the var at this pressure level (hPa)
 ;
-;        opt_2Ddata@return_type = "time-lat_lon-lon_mono"    	; input: var(time,lat,lon1). return var(time,lat,lon2). lon2 is monotonic
+;        opt_2Ddata@return_type = "tji2jt_avgi"         ; input: var(time,lat,lon). return var(latitdue,time) averaged over lon
 ;
-;        opt_2Ddata@return_type = "time_lat_lon-plev"		; input: CESM var(time,lev/ilev,lat,lon). return var(time,lat,lon) at the given pressure level
-;           opt_2Ddata@plev        = 300.			; interpolate the var at this pressure level (hPa)
+;        opt@return_type = "tlji2pn_crossji"		; input: CESM var(time,lev/ilev,lat,lon). return var(time,pressure,npoints), vertical cross section between two points
+;           opt@linint2_points_cyclic = True  		; For function linint2_points. This should be set to True only if you have global data, but your longitude values don't quite wrap all the way around the globe. For example, if your longitude values go from, say, -179.75 to 179.75, or 0.5 to 359.5, then you would set this to True.
+;           opt@leftlat  =  -30.			; lat/lon of the left point
+;           opt@leftlon  =  20.				
+;           opt@rightlat =  -60.			; lat/lon of the right point
+;           opt@rightlon =  -60.
+;           opt@npts     =  100				; number of points of resulting transection
+;           opt@time_step= "avg" or n			; "avg" plot the time-averaged; n=0,N plot at n time step
+;           opt@plev     = (/250., 300., 350., 400., 450., 500./)       ; pressure levels for interpolation
+
 ;
 ; procedure cnColors_PosNeg (varvar[*][*]:numeric, res[1]:logical, opt_cncolors[1]:logical)
 ;   assign colors to positive and negative values in NCL resources for plotting contour
@@ -411,23 +454,34 @@ begin
      option_cmap = "dry_wet"
   end if
 
+  if ( \
+          .not.ismissing(str_match(longname,"humidity")) \
+     ) then
+     option_cmap = "dry_wet"
+  end if
+
 ;----------------
 ; program start
 ;----------------
+
+  ;*** intialize opt_work ***
   opt_work = True
   opt_work@max_levels = 15  ; level for using function nice_mnmxintvl
 
   opt_work@cnlevels_predefine = False    ; True  - contour levels are given in res
   ;opt_work@cnlevels_predefine = True      False - contour levels will be computed in this procedure
 
+  copy_VarAtts(opt_cncolors, opt_work)
+
+  ;*** set colormap here ***
   if (option_cmap .eq. "dry_wet") then
     opt_work@colormap_positive = "MPL_YlGnBu"
-    ;opt_work@colormap_positive_index_start = 2       ; the least positive color
-    ;opt_work@colormap_positive_index_end = 999       ; the most  positive color
+    opt_work@colormap_positive_index_start = 2      ; the least positive color
+    opt_work@colormap_positive_index_end = 113       ; the most  positive color
 
-    opt_work@colormap_negative = "MPL_YlOrBr"
-    opt_work@colormap_negative_index_start = 120     ; the most  negative color
-    opt_work@colormap_negative_index_end = 2         ; the least negative color
+    opt_work@colormap_negative = "MPL_pink"
+    opt_work@colormap_negative_index_start = 17      ; the most  negative color
+    opt_work@colormap_negative_index_end = 129       ; the least negative color
   end if
 
   if (option_cmap .eq. "purple_green") then
@@ -459,8 +513,6 @@ begin
     opt_work@colormap_negative_index_start = 127         ; the most  negative color
     opt_work@colormap_negative_index_end = 2             ; the least negative color
   end if
-
-  copy_VarAtts(opt_cncolors, opt_work)
 
   ;*********************
   ; get contour levels
@@ -668,6 +720,13 @@ if (option_cnlevels) then
   else
     opt_cncolors@cmap_index_negative = cmap_index_negative
   end if
+
+  delete(cncolors)
+  delete(opt_work)
+  delete(cmap_positive)
+  delete(cmap_negative)
+  delete(num_cmap_positive)
+  delete(num_cmap_negative)
 
 end if  ; end if of option_cnlevels
 
@@ -1840,9 +1899,9 @@ begin
   data_out = wgt_areaave_Wrap(data_in,coslat,1.0,1)
 
   if (isatt(data_in,"long_name")) then
-    data_out@long_name = data_in@long_name + " (latitude-weighted area mean)"
-  else
-    data_out@long_name = "latitude-weighted area mean variable"
+    data_out@long_name = data_in@long_name ;+ " (latitude-weighted area mean)"
+  ;else
+  ;  data_out@long_name = "latitude-weighted area mean variable"
   end if
 
   return(data_out)
@@ -3055,22 +3114,42 @@ begin
 ;---------------
   option_execute = False
 
-  case_names = (/"pressure_time-latlon_avg", \
-                 "pressure_lat-timelon_avg", \
-                 "lat_time-lon_avg", \
-                 "time_lat_lon-lon_mono" \
-                 /)
+  case_names = (/ \
+                "tlji2pt_avgji", \
+                "tlji2tji_intp", \
+                "tlji2pn_crossji", \
+                "tlji2pj_avgti", \
+                "tji2jt_avgi" \
+                /)
 
   plev_default = (/1., 2., 3., 5., 7., 10., 20., 30., 50., 70., 100., 125., 150., 175., 200., 225., \
       250., 300., 350., 400., 450., 500., 550., 600., 650., 700., 750., 775., 800., 825., \
       850., 875., 900., 925., 950., 975., 1000./)
+
+  if (isatt(opt, "return_type")) then
+    if (opt@return_type .eq. "pressure_time-latlon_avg") then
+      opt@return_type = "tlji2pt_avgji"
+    end if
+
+    if (opt@return_type .eq. "pressure_lat-timelon_avg") then
+      opt@return_type = "tji2jt_avgi"
+    end if
+
+    if (opt@return_type .eq. "lat_time-lon_avg") then
+      opt@return_type = "tji2jt_avgi"
+    end if
+
+    if (opt@return_type .eq. "time_lat_lon-plev") then
+      opt@return_type = "tlji2tji_intp"
+    end if
+  end if
 
 ;--------------------------------------------
 ; convert (time,lev/ilev,lat,lon) to (plev,time)
 ;   1. interpolate CESM hybrid level to the given pressure levels
 ;   2. do lat & lon average
 ;--------------------------------------------
-  if ( isatt(opt, "return_type") .and. opt@return_type .eq. "pressure_time-latlon_avg") then
+  if ( isatt(opt, "return_type") .and. opt@return_type .eq. "tlji2pt_avgji") then
 
     ;*** read the variable ***
     filetemp = addfile(infilename, "r")
@@ -3122,14 +3201,14 @@ begin
     ;printVarSummary(varvar_return)
 
     option_execute = True
-  end if  ; end if of "pressure_time-latlon_avg"
+  end if  ; end if of "tlji2pt_avgji"
 
 ;--------------------------------------------
 ; convert (time,lat,lon) to (lat,time)
 ;   1. do lon average
 ;--------------------------------------------
 
-  if ( isatt(opt, "return_type") .and. opt@return_type .eq. "lat_time-lon_avg") then
+  if ( isatt(opt, "return_type") .and. opt@return_type .eq. "tji2jt_avgi") then
 
     ;*** read the variable ***
     filetemp = addfile(infilename, "r")
@@ -3152,65 +3231,65 @@ begin
 
     option_execute = True
     ;printVarSummary(varvar_return)
-  end if  ; end if of "lat_time-lon_avg"
+  end if  ; end if of "tji2jt_avgi"
 
 ;--------------------------------------------
-; convert (time,lat,lon1) to (time,lat,lon2), lon1 is not monotonic while lon2 is. e.g. lon1 = (/350,0,10/) and lon2 is (/-10,0,10/).
+; OUTDATED: convert (time,lat,lon1) to (time,lat,lon2), lon1 is not monotonic while lon2 is. e.g. lon1 = (/350,0,10/) and lon2 is (/-10,0,10/).
 ;--------------------------------------------
-  if ( isatt(opt, "return_type") .and. opt@return_type .eq. "time_lat_lon-lon_mono") then
-
-    ;*** read the variable ***
-    filetemp = addfile(infilename, "r")
-      varvar_tmp = filetemp->$varvar$
-
-    ;if ( isatt(opt, "time_step") .and. isint(opt@time_step)) then
-    ;  tt = opt@time_step
-    ;  varvar_tmp = filetemp->$varvar$(tt,:,:)
-    ;else
-    ;  varvar_tmp = filetemp->$varvar$
-    ;end if
-
-    ;*** get lon ***
-    if ( iscoord(varvar_tmp,"lon")) then
-      lonname = "lon"
-      lon = filetemp&$lonname$
-      option_execute = True
-
-    else if ( iscoord(varvar_tmp,"longitude")) then
-      lonname = "longitude"
-      lon = filetemp&$lonname$
-      option_execute = True
-    else
-      print("ERROR: (ignorant_convert_2Ddata) coordinate lon/longitude is not found in return type: [time_lat_lon-lon_mono]")
-      print("")
-      option_execute = False
-    end if
-    end if
-
-    ;*** make lon monotonic ***
-    if (option_execute) then
-
-      nlon = dimsizes(lon)
-      lon1 = lon
-      do i=0,nlon-1
-        if (lon(i).gt.180.) then
-          lon1(i) = lon(i) - 360.
-        end if
-      end do
-
-    ;*** return variable ***
-    varvar_return = varvar_tmp
-    varvar_return&$lonname$ = (/lon1/)
-
-    end if
-  end if ; end if of "time_lat_lon-lon_mono"
+;  if ( isatt(opt, "return_type") .and. opt@return_type .eq. "time_lat_lon-lon_mono") then
+;
+;    ;*** read the variable ***
+;    filetemp = addfile(infilename, "r")
+;      varvar_tmp = filetemp->$varvar$
+;
+;    ;if ( isatt(opt, "time_step") .and. isint(opt@time_step)) then
+;    ;  tt = opt@time_step
+;    ;  varvar_tmp = filetemp->$varvar$(tt,:,:)
+;    ;else
+;    ;  varvar_tmp = filetemp->$varvar$
+;    ;end if
+;
+;    ;*** get lon ***
+;    if ( iscoord(varvar_tmp,"lon")) then
+;      lonname = "lon"
+;      lon = filetemp&$lonname$
+;      option_execute = True
+;
+;    else if ( iscoord(varvar_tmp,"longitude")) then
+;      lonname = "longitude"
+;      lon = filetemp&$lonname$
+;      option_execute = True
+;    else
+;      print("ERROR: (ignorant_convert_2Ddata) coordinate lon/longitude is not found in return type: [time_lat_lon-lon_mono]")
+;      print("")
+;      option_execute = False
+;    end if
+;    end if
+;
+;    ;*** make lon monotonic ***
+;    if (option_execute) then
+;
+;      nlon = dimsizes(lon)
+;      lon1 = lon
+;      do i=0,nlon-1
+;        if (lon(i).gt.180.) then
+;          lon1(i) = lon(i) - 360.
+;        end if
+;      end do
+;
+;    ;*** return variable ***
+;    varvar_return = varvar_tmp
+;    varvar_return&$lonname$ = (/lon1/)
+;
+;    end if
+;  end if ; end if of "time_lat_lon-lon_mono"
 
 ;--------------------------------------------
 ; convert (time,lev/ilev,lat,lon) to (time,lat,lon) at a pressure level
 ;   1. interpolate CESM hybrid level to the given pressure level
 ;--------------------------------------------
 
-  if ( isatt(opt, "return_type") .and. opt@return_type .eq. "time_lat_lon-plev") then
+  if ( isatt(opt, "return_type") .and. opt@return_type .eq. "tlji2tji_intp") then
 
     ;*** read the variable ***
     filetemp = addfile(infilename, "r")
@@ -3236,7 +3315,7 @@ begin
     if ( isatt(opt, "plev") .and. dimsizes(opt@plev) .eq. 1) then
       plev_work = opt@plev
     else
-      print("WARNING: (ignorant_convert_2Ddata) case [time_lat_lon-plev] only allow a pressure level or opt@plev is not given. Set to 500 hPa")
+      print("WARNING: (ignorant_convert_2Ddata) case [tlji2tji_intp] only allow a pressure level or opt@plev is not given. Set to 500 hPa")
       plev_work = 500.
     end if
 
@@ -3250,14 +3329,14 @@ begin
     varvar_return@long_name = varvar_return@long_name+" at "+varvar_return@pressure_level
 
     option_execute = True
-  end if  ; end if of "time_lat_lon-plev"
+  end if  ; end if of "tlji2tji_intp"
 
 ;--------------------------------------------
 ; convert (time,lev/ilev,lat,lon) to (plev,lat)
 ;   1. interpolate CESM hybrid level to the given pressure levels
 ;   2. do time & lon average
 ;--------------------------------------------
-  if ( isatt(opt, "return_type") .and. opt@return_type .eq. "pressure_lat-timelon_avg") then
+  if ( isatt(opt, "return_type") .and. opt@return_type .eq. "tlji2pj_avgti") then
 
     ;*** read the variable ***
     filetemp = addfile(infilename, "r")
@@ -3298,7 +3377,145 @@ begin
     varvar_return = varvar_tmp_plev_itavg
     option_execute = True
 
-  end if ; end if of "pressure_lat-timelon_avg"
+  end if ; end if of "tlji2pj_avgti"
+
+;--------------------------------------------
+; convert (time,lev/ilev,lat,lon) to (time,plev,points)
+;   1. interpolate CESM hybrid level to the given pressure levels
+;   2. do vertical cross section between two given lat/lon points
+;--------------------------------------------
+  if ( isatt(opt, "return_type") .and. opt@return_type .eq. "tlji2pn_crossji") then
+
+    ;*** set parameters ***
+    leftlat   = opt@leftlat
+    leftlon   = opt@leftlon 
+
+    rightlat  = opt@rightlat 
+    rightlon  = opt@rightlon 
+
+    if (isatt(opt,"npts")) then
+      npts = opt@npts
+    else
+      npts = 100 
+    end if
+
+    if (isatt(opt,"time_step") .and. isint(opt@time_step)) then
+      tt = opt@time_step
+    else if (isatt(opt,"time_step") .and. opt@time_step .eq. "avg") then
+      tt = -999
+    else
+      tt=0
+    end if
+    end if
+
+    if ( isatt(opt, "plev") ) then
+      plev_work = opt@plev
+    else
+      plev_work = plev_default
+    end if
+
+    ;*** read the variable ***
+    filetemp = addfile(infilename, "r")
+
+    hyai_tmp   = filetemp->hyai      ; hybrid A coefficient at layer interface
+    hybi_tmp   = filetemp->hybi      ; hybrid B coefficient at layer interface
+    hyam_tmp   = filetemp->hyam      ; hybrid A coefficient at layer midpoints
+    hybm_tmp   = filetemp->hybm      ; hybrid B coefficient at layer midpoints
+    PS_tmp     = filetemp->PS        ; surface pressures  in Pa
+    P0_tmp     = filetemp->P0        ; reference pressure in Pa
+    varvar_tmp = filetemp->$varvar$
+
+    if (iscoord(varvar_tmp,"lev")) then
+      hyaw_tmp  = hyam_tmp
+      hybw_tmp  = hybm_tmp
+    else if (iscoord(varvar_tmp,"ilev")) then
+      hyaw_tmp  = hyai_tmp
+      hybw_tmp  = hybi_tmp
+    end if
+    end if
+
+    ;*** set pressure levels for interpolation ***
+    if ( isatt(opt, "plev") ) then
+      plev_work = opt@plev
+    else
+      plev_work = plev_default
+    end if
+
+    ;*** do interpolation ***
+    varvar_tmp_plev = vinth2p(varvar_tmp, hyaw_tmp, hybw_tmp, plev_work, PS_tmp, 1, P0_tmp/100., 1, False)
+    copy_VarAtts(varvar_tmp, varvar_tmp_plev)
+    ;printVarSummary(varvar_tmp_plev)
+
+    ;*** get lon/lat coordinate ***
+    if (isdim(varvar_tmp_plev,"lat")) then
+      lat_var = varvar_tmp_plev&lat
+    end if
+
+    if (isdim(varvar_tmp_plev,"lon")) then
+      lon_var = varvar_tmp_plev&lon
+
+      ;*** make lon monotonic ***
+      if (isMonotonic(lon_var) .eq. 0) then ; lon is not monotonic
+        nlon = dimsizes(lon_var)
+        do i=0,nlon-1
+          if (lon_var(i).gt.180.) then
+            lon_var(i) = lon_var(i) - 360.
+          end if
+        end do
+        varvar_tmp_plev&lon = lon_var
+      end if
+    end if
+
+    ;*** get points coordinate ***
+    points   = fspan(0.,npts-1,npts)
+
+    ;*** use NCL function "gc_latlon" to finds the great circle distance (true surface distance) between two given points ***
+    ;*** gc_latlon, https://www.ncl.ucar.edu/Document/Functions/Built-in/gc_latlon.shtml ***
+    dist  = gc_latlon(leftlat,leftlon,rightlat,rightlon,npts,2) ; iu=2, return the distance in degrees
+
+    ;*** get all lat/lon between two given points ***
+    lon_cross = dist@gclon
+    lat_cross = dist@gclat
+
+      ;*** make lon monotonic ***
+      if (isMonotonic(lon_cross) .eq. 0) then ; lon is not monotonic
+        nlon = dimsizes(lon_cross)
+        do i=0,nlon-1
+          if (lon_cross(i).gt.180.) then
+            lon_cross(i) = lon_cross(i) - 360.
+          end if
+        end do
+      end if
+
+    ;*** use NCL function "linint2_points" to interpolate data between two given points ***
+    ;*** linint2_points, https://www.ncl.ucar.edu/Document/Functions/Built-in/linint2_points.shtml ***
+    varvar_cross = linint2_points(lon_var, lat_var, varvar_tmp_plev, opt@linint2_points_cyclic, lon_cross, lat_cross, 2) ; 2:Reserved for future use
+    copy_VarAtts(varvar_tmp_plev,varvar_cross)
+
+    ;*** set dimensions ***
+    varvar_cross!0 = "time"
+    varvar_cross&time = varvar_tmp_plev&time
+
+    varvar_cross!1 = "lev_p"
+    varvar_cross&lev_p = varvar_tmp_plev&lev_p
+
+    varvar_cross!2 = "points"
+    varvar_cross&points = points
+
+    varvar_cross@lat_points = lat_cross
+    varvar_cross@lon_points = lon_cross
+    ;printVarSummary(varvar_cross)
+
+    if ( tt .eq. -999 ) then
+      varvar_return = dim_avg_n_Wrap(varvar_cross,0)
+    else
+      varvar_return = varvar_cross(tt,:,:)
+    end if
+
+    ;print(varvar_return)
+    option_execute = True
+
+  end if ; end if of "tlji2pn_crossji"
 
 ;---------
 ; default
@@ -3320,36 +3537,39 @@ begin
 ; option: change monotonically lon
 ;------------------------
 
-  if ( isatt(opt, "do_lon_mono") .and. opt@do_lon_mono) then
-    ;*** get lon ***
-    if ( iscoord(varvar_return,"lon")) then
-      lonname = "lon"
-      lon = filetemp&$lonname$
-      option_execute1 = True
+  option_execute1 = False
 
-    else if ( iscoord(varvar_return,"longitude")) then
-      lonname = "longitude"
-      lon = filetemp&$lonname$
+  ;*** get longitude array ***
+  if ( iscoord(varvar_return,"lon")) then
+    lonname = "lon"
+    lon = filetemp&$lonname$
+
+    if (isMonotonic(lon) .eq. 0) then ; lon is not monotonic
       option_execute1 = True
-    else
-      print("ERROR: (ignorant_convert_2Ddata) lon/longitude coordinate is not found so it cannot be processed")
-      print("")
-      option_execute1 = False
-    end if
     end if
 
-    ;*** make lon monotonic ***
-    if (option_execute1) then
-      nlon = dimsizes(lon)
-      lon1 = lon
-      do i=0,nlon-1
-        if (lon(i).gt.180.) then
-          lon1(i) = lon(i) - 360.
-        end if
-      end do
-      varvar_return&$lonname$ = (/lon1/)
+  else if ( iscoord(varvar_return,"longitude")) then
+    lonname = "longitude"
+    lon = filetemp&$lonname$
+
+    if (isMonotonic(lon) .eq. 0) then ; lon is not monotonic
+      option_execute1 = True
     end if
-  end if ; end if of opt@do_lon_mono
+
+  end if
+  end if
+
+  ;*** make lon monotonic ***
+  if (option_execute1) then
+    nlon = dimsizes(lon)
+    lon1 = lon
+    do i=0,nlon-1
+      if (lon(i).gt.180.) then
+        lon1(i) = lon(i) - 360.
+      end if
+    end do
+    varvar_return&$lonname$ = (/lon1/)
+  end if
 
 ;----------------------------------------
 ; option: select the returned time step
@@ -3413,9 +3633,14 @@ begin
 
 ; res for plot
   res_var_work = True
-    opt1 = True
-    cnColors_PosNeg(varvar_anyMbase_avg,res_var_work,opt1)
+    if (isatt(opt,"cnColors_PosNeg") .and. .not.opt@cnColors_PosNeg ) then
+      opt1 = False
+    else
+      opt1 = True
+      cnColors_PosNeg(varvar_anyMbase_avg,res_var_work,opt1)
+    end if
   copy_VarAtts(res_var,res_var_work)
+
 
 ; res for siglvl
   res_sig_work = True
@@ -3437,6 +3662,10 @@ begin
   ;res_sig_work@cnFillPatterns = (/0,17/)  ; dotted
 
   copy_VarAtts(res_sig,res_sig_work)
+
+  ;if (isatt(res_var,"gsnAddCyclic")) then
+  ;  res_sig_work@gsnAddCyclic = res_var@gsnAddCyclic
+  ;end if
 
   if ( .not.isatt(res_var_work, "tiMainString")) then
     res_var_work@tiMainString = "Significance level at "+siglev+"% for "+ntime+" steps"
@@ -3498,103 +3727,116 @@ if (opt_chgatt) then
 ; initialize
 ;*************
 
-;********************
-; change fill colors
-;********************
-  opt_chgcolors = False
-
   if ( isatt(varin,"long_name") ) then
     longname = varin@long_name
   else
     longname = "slkdjflksjdfljasldfjlaks"
   end if
 
-  if ( \
-           .not.ismissing(str_match(longname,"Vertical velocity")) \
-      .or. .not.ismissing(str_match(longname,"OMEGA")) \
-     ) then
-     option_cmap = "red_blue"
-     opt_chgcolors = True
-  end if
+;*****************************************
+; change fill colors, for absolute value
+;*****************************************
 
-  if ( \
-           .not.ismissing(str_match(longname,"Zonal wind")) \
-      .or. .not.ismissing(str_match(longname,"zonal wind")) \
-      .or. .not.ismissing(str_match(longname,"Meridional wind")) \
-      .or. .not.ismissing(str_match(longname,"meridional wind")) \
-      .or. .not.ismissing(str_match(longname,"U at")) \
-      .or. .not.ismissing(str_match(longname,"V at")) \
-     ) then
-     option_cmap = "purple_green"
-     opt_chgcolors = True
-  end if
+  if (isatt(opt_chgatt,"chg_cncolors") .and. opt_chgatt@chg_cncolors) then
 
-  if (opt_chgcolors) then
-
-    opt_work = True
-    opt_work@max_levels = 15  ; level for using function nice_mnmxintvl
-
-    opt_work@cnlevels_predefine = False    ; True  - contour levels are given in res
-    ;opt_work@cnlevels_predefine = True      False - contour levels will be computed in this procedure
-
-    if (option_cmap .eq. "dry_wet") then
-      opt_work@colormap_positive = "MPL_YlGnBu"
-      ;opt_work@colormap_positive_index_start = 2       ; the least positive color
-      ;opt_work@colormap_positive_index_end = 999       ; the most  positive color
-
-      opt_work@colormap_negative = "MPL_YlOrBr"
-      opt_work@colormap_negative_index_start = 120     ; the most  negative color
-      opt_work@colormap_negative_index_end = 2         ; the least negative color
-    end if
-
-    if (option_cmap .eq. "purple_green") then
-      opt_work@colormap_positive = "MPL_Purples"       ; colormap for plotting positive colors
-      opt_work@colormap_positive_index_start = 2       ; the least positive color
-      opt_work@colormap_positive_index_end = 999       ; the most  positive color
+    opt_chgcolors = False
   
-      opt_work@colormap_negative = "MPL_Greens"        ; colormap for plotting negative colors
-      opt_work@colormap_negative_index_start = 120     ; the most  negative color
-      opt_work@colormap_negative_index_end = 2         ; the least negative color
+    if ( \
+             .not.ismissing(str_match(longname,"Vertical velocity")) \
+        .or. .not.ismissing(str_match(longname,"OMEGA")) \
+       ) then
+       option_cmap = "red_blue"
+       opt_chgcolors = True
     end if
   
-    if (option_cmap .eq. "red_blue") then
-      opt_work@colormap_positive = "NCV_blu_red"         ; colormap for plotting positive colors
-      opt_work@colormap_positive_index_start = 123       ; the least positive color
-      opt_work@colormap_positive_index_end = 2           ; the most  positive color
-  
-      opt_work@colormap_negative = "NCV_blu_red"         ; colormap for plotting negative colors
-      opt_work@colormap_negative_index_start = 255       ; the most  negative color
-      opt_work@colormap_negative_index_end = 137         ; the least negative color
+    if ( \
+             .not.ismissing(str_match(longname,"Zonal wind")) \
+        .or. .not.ismissing(str_match(longname,"zonal wind")) \
+        .or. .not.ismissing(str_match(longname,"Meridional wind")) \
+        .or. .not.ismissing(str_match(longname,"meridional wind")) \
+        .or. .not.ismissing(str_match(longname,"U at")) \
+        .or. .not.ismissing(str_match(longname,"V at")) \
+       ) then
+       option_cmap = "purple_green"
+       opt_chgcolors = True
     end if
   
-    if (option_cmap .eq. "default") then
-      opt_work@colormap_positive = "WhiteYellowOrangeRed"  ; colormap for plotting positive colors
-      opt_work@colormap_positive_index_start = 2           ; the least positive color
-      opt_work@colormap_positive_index_end = 999           ; the most  positive color
+    if (opt_chgcolors) then
   
-      opt_work@colormap_negative = "MPL_GnBu"              ; colormap for plotting negative colors
-      opt_work@colormap_negative_index_start = 127         ; the most  negative color
-      opt_work@colormap_negative_index_end = 2             ; the least negative color
-    end if
+      opt_work = True
+      opt_work@max_levels = 15  ; level for using function nice_mnmxintvl
   
-    copy_VarAtts(opt_chgatt, opt_work)
+      opt_work@cnlevels_predefine = False    ; True  - contour levels are given in res
+      ;opt_work@cnlevels_predefine = True      False - contour levels will be computed in this procedure
+  
+      if (option_cmap .eq. "dry_wet") then
+        opt_work@colormap_positive = "MPL_YlGnBu"
+        ;opt_work@colormap_positive_index_start = 2       ; the least positive color
+        ;opt_work@colormap_positive_index_end = 999       ; the most  positive color
+  
+        ;opt_work@colormap_negative = "MPL_YlOrBr"
+        ;opt_work@colormap_negative_index_start = 120     ; the most  negative color
+        ;opt_work@colormap_negative_index_end = 2         ; the least negative color
+        opt_work@colormap_negative = "MPL_YlGnBu"
+        opt_work@colormap_negative_index_start = 2     ; the most  negative color
+        opt_work@colormap_negative_index_end = 129         ; the least negative color
+      end if
+  
+      if (option_cmap .eq. "purple_green") then
+        opt_work@colormap_positive = "MPL_Purples"       ; colormap for plotting positive colors
+        opt_work@colormap_positive_index_start = 2       ; the least positive color
+        opt_work@colormap_positive_index_end = 999       ; the most  positive color
+    
+        opt_work@colormap_negative = "MPL_Greens"        ; colormap for plotting negative colors
+        opt_work@colormap_negative_index_start = 120     ; the most  negative color
+        opt_work@colormap_negative_index_end = 2         ; the least negative color
+      end if
+    
+      if (option_cmap .eq. "red_blue") then
+        opt_work@colormap_positive = "NCV_blu_red"         ; colormap for plotting positive colors
+        opt_work@colormap_positive_index_start = 123       ; the least positive color
+        opt_work@colormap_positive_index_end = 2           ; the most  positive color
+    
+        opt_work@colormap_negative = "NCV_blu_red"         ; colormap for plotting negative colors
+        opt_work@colormap_negative_index_start = 255       ; the most  negative color
+        opt_work@colormap_negative_index_end = 137         ; the least negative color
+      end if
+    
+      if (option_cmap .eq. "default") then
+        opt_work@colormap_positive = "WhiteYellowOrangeRed"  ; colormap for plotting positive colors
+        opt_work@colormap_positive_index_start = 2           ; the least positive color
+        opt_work@colormap_positive_index_end = 999           ; the most  positive color
+    
+        opt_work@colormap_negative = "MPL_GnBu"              ; colormap for plotting negative colors
+        opt_work@colormap_negative_index_start = 127         ; the most  negative color
+        opt_work@colormap_negative_index_end = 2             ; the least negative color
+      end if
+    
+      copy_VarAtts(opt_chgatt, opt_work)
+  
+      ndim = dimsizes(dimsizes(varin))
+      if (ndim.eq.2) then
+        varin_temp1 = varin
+      else if (ndim.eq.3) then
+        varin_temp1 = dim_avg_n_Wrap(varin,0)
+      else if (ndim.eq.4) then
+        varin_temp0 = dim_avg_n_Wrap(varin,0)
+        varin_temp1 = dim_avg_n_Wrap(varin_temp0,0)
+      end if
+      end if
+      end if
+  
+      if (varname.eq."OMEGA") then
+         if ( isatt(varin, "units") .and. varin@units.eq."Pa/s") then
+           varin_temp1 = unit_convert(varin_temp1,"Pa/s","hPa/day")
+         end if
+      end if
+      cnColors_PosNeg(varin_temp1, res, opt_work)
+  
+    end if ; end if of opt_chgcolors
+  
+  end if ; end if of opt_chgatt@chg_cncolors
 
-    ndim = dimsizes(dimsizes(varin))
-    if (ndim.eq.2) then
-      varin_temp1 = varin
-    else if (ndim.eq.3) then
-      varin_temp1 = dim_avg_n_Wrap(varin,0)
-    else if (ndim.eq.4) then
-      varin_temp0 = dim_avg_n_Wrap(varin,0)
-      varin_temp1 = dim_avg_n_Wrap(varin_temp0,0)
-    end if
-    end if
-    end if
-
-    cnColors_PosNeg(varin_temp1, res, opt_work)
-
-  end if ; end if of opt_chgcolors
-  
 ;***************
 ; change units
 ;***************
@@ -3604,98 +3846,457 @@ if (opt_chgatt) then
     end if
   end if
 
+  if (varname.eq."Q") then
+    if ( isatt(varin, "units") .and. varin@units.eq."kg/kg") then
+      varin  = unit_convert(varin,"kg/kg","g/kg")
+    end if
+  end if
+
+  if (varname.eq."CLDLIQ" .or. varname.eq."CLDICE") then
+    if ( isatt(varin, "units") .and. varin@units.eq."kg/kg") then
+      varin  = unit_convert(varin,"kg/kg","mg/kg")
+    end if
+  end if
+
+  if (varname.eq."OMEGA") then
+    if ( isatt(varin, "units") .and. varin@units.eq."Pa/s") then
+      varin  = unit_convert(varin,"Pa/s","hPa/day")
+    end if
+  end if
+
 ;***********************
 ; change units string
 ;***********************
 ;
-  if (varin@units .eq. "W/m2") then
-    res@gsnRightString = "W m~S~-2"
+  if (isatt(varin,"units") .and. varin@units .eq. "W/m2") then
+    varin@units = "W m~S~-2"
+    res@gsnRightString = varin@units
   end if
 
-  if (varin@units .eq. "gram/m2") then
-    res@gsnRightString = "g m~S~-2"
+  if (isatt(varin,"units") .and. varin@units .eq. "gram/m2") then
+    varin@units = "g m~S~-2"
+    res@gsnRightString = varin@units
   end if
 
 ;*************************
 ; change variables string
 ;*************************
 ;
-  if (varname.eq."CLDLOW") then
-    res@gsnLeftString = "Low cloud fraction"
-  end if
-
-  if (varname.eq."FLNS") then
-    res@gsnLeftString = "Net Up LW flux at the surface"
-  end if
-
-  if (varname.eq."FLNSC") then
-    res@gsnLeftString = "clrsky Surf Net Up LW flux"
-  end if
-
-  if (varname.eq."FLUT") then
-    res@gsnLeftString = "Outgoing LW radiation"
-  end if
-
-  if (varname.eq."FLUTC") then
-    res@gsnLeftString = "clrsky Outgoing LW radiation"
-  end if
-
-  if (varname.eq."FLDS") then
-    res@gsnLeftString = "Dn LW flux at the surf"
-  end if
-
-  if (varname.eq."FLDSC") then
-    res@gsnLeftString = "clrsky Dn LW flux at the surf"
-  end if
-
-  if (varname.eq."FSDS") then
-    res@gsnLeftString = "Dn SW flux at the surf"
-  end if
-
-  if (varname.eq."FSDSC") then
-    res@gsnLeftString = "clr-sky Dn SW flux at the surf"
-  end if
-
-  if (varname.eq."LHFLX") then
-    res@gsnLeftString = "Latent heat flux"
-  end if
-
-  if (varname.eq."OMEGA500") then
-    res@gsnLeftString = "~F33~w~F~ at 500 hPa"
-  end if
-
-  if (varname.eq."PRECC") then
-    res@gsnLeftString = "Conv Prec"
-  end if
-
-  if (varname.eq."PRECL") then
-    res@gsnLeftString = "Stratiform Prec"
-  end if
-
-  if (varname.eq."PRECT") then
-    res@gsnLeftString = "Total Prec"
-  end if
-
-  if (varname.eq."RADCOOL_TOA_TO_SURF") then
-    res@gsnLeftString = "Net Column Rad cooling"
-  end if
-
-  if (varname.eq."SHFLX") then
-    res@gsnLeftString = "Sensible heat flux"
-  end if
-
-  if (varname.eq."TS") then
-    res@gsnLeftString = "Surf Rad temperature"
-  end if
-
-  if (varname.eq."TREFHT") then
-    res@gsnLeftString = "Surface air temperature"
-  end if
-
-  if (varname.eq."TGCLDLWP") then
-    res@gsnLeftString = "Grid-box liquid water path"
-  end if
+  var_strings = (/  \
+                  (/"CLDLOW"		, "Low cloud fraction"/),  \ 
+                  (/"CLDMED"		, "Middle cloud fraction"/),  \ 
+                  (/"CLDHGH"		, "High cloud fraction"/),  \ 
+                  (/"CLDTOT"		, "Total cloud fraction"/),  \ 
+                  (/"FLNS"		, "Net Up LW flux at the surface"/), \
+                  (/"FLNSC"		, "clrsky Surf Net Up LW flux"/), \
+                  (/"FLUT"		, "Outgoing LW radiation"/), \
+                  (/"FLUTC"		, "clrsky Outgoing LW radiation"/), \
+                  (/"FLDS"		, "Dn LW flux at the surf"/), \
+                  (/"FSDS"		, "Dn SW flux at the surf"/), \
+                  (/"FSDSC"		, "clr-sky Dn SW flux at the surf"/), \
+                  (/"LHFLX"		, "Latent heat flux"/), \
+                  (/"OMEGA500"		, "~F33~w~F~ at 500 hPa"/), \
+                  (/"PRECC"		, "Conv Prec"/), \
+                  (/"PRECL"		, "Stratiform Prec"/), \
+                  (/"PRECT"		, "Total Prec"/), \
+                  (/"RADCOOL_TOA_TO_SURF","Net Column Rad Cooling"/), \
+                  (/"SHFLX"		, "Sensible heat flux"/), \
+                  (/"TS"		, "Surf Rad temperature"/), \
+                  (/"TREFHT"		, "Surface air temperature"/), \
+                  (/"TGCLDIWP"		, "Grid-box ice water path"/), \
+                  (/"TGCLDLWP"		, "Grid-box liquid water path"/) \
+                  ;(/""	, /), \
+                /)
+  nstring = dimsizes(var_strings(:,0))
+  do i=0,nstring-1
+    if (varname.eq.var_strings(i,0)) then
+      res@gsnLeftString = var_strings(i,1)
+    end if
+  end do
 
 end if ; end if of opt_chgatt
+
+end
+
+;#############################################
+undef("ignorant_convert_1Ddata")
+procedure ignorant_convert_1Ddata (infilenames[*]:string, varvars[*]:string, res[1]:logical, opt[1]:logical)
+begin
+
+;---------------
+; initialization
+;---------------
+  ;case_name = var(input dimension) + "2" + xx + "_" + yy + process , e.g. ftji2f_t_avgji
+  case_names = (/ \
+                "vtji2t_vt_avgji", \
+                "vtlji2vp_p_avgtji", \
+                "ftlji2fp_p_avgtji", \
+                "ftji2t_ft_avgji" \
+                /)
+
+  ;*** set res_work ***
+  res_work = True
+  res_work@xyMonoMarkLineMode = True
+  res_work@xyMarkLineMode     = "Lines"
+  xy_colors1 = (/ "red", \
+                  "blue",  \
+                  "orange", \
+;                  "yellow",  \
+                  "green", \
+                  "purple",  \
+                  "pink",  \
+                  "brown",  \
+                  "gray",  \
+                  "purple",  \
+                  "black"  \
+                /)
+  res_work@xyMonoLineColor    = False
+  res_work@xyLineColors       = xy_colors1
+
+  res_work@xyMonoDashPattern  = True
+  res_work@xyDashPattern      = 0
+
+  res_work@xyMonoLineThickness = True
+  res_work@xyLineThicknessF    = 2.5
+
+  ;*** set opt for change_var_atts ***
+  opt_change = True
+
+  ;*** set opt@update_res ***
+  if ( isatt(opt, "update_res") .and. .not.opt@update_res ) then
+    opt@update_res = False
+  else
+    opt@update_res = True
+  end if
+
+  ;*** set default pressure levels for interpolation ***
+  plev_default = (/1., 2., 3., 5., 7., 10., 20., 30., 50., 70., 100., 125., 150., 175., 200., 225., \
+      250., 300., 350., 400., 450., 500., 550., 600., 650., 700., 750., 775., 800., 825., \
+      850., 875., 900., 925., 950., 975., 1000./)
+
+;------------
+; check case
+;------------
+  ncase  = dimsizes(case_names)
+  check1 = False
+
+  do i=0,ncase-1
+    if ( isatt(opt, "return_type") .and. opt@return_type .eq. case_names(i)) then
+      check1 = True
+    end if    
+  end do
+
+  if (.not.check1) then
+    print("WARNING: (ignorant_convert_1Ddata) fail to execute the case ["+opt@return_type+"]")
+    print("  avail case: "+ case_names)
+    print("Not return var_xx & var_yy")
+  end if
+
+;------------------
+; check time step
+;------------------
+  if (isatt(opt,"time_step_start") .and. isatt(opt,"time_step_end") ) then
+    tt1 = opt@time_step_start
+    tt2 = opt@time_step_end
+  else
+    ftemp_name = infilenames(0)
+    ftemp1     = addfile(ftemp_name, "r")
+    ;printVarSummary(ftemp1)
+    if ( isdim(ftemp1,"time") ) then
+      ntime = dimsizes(ftemp1&time)
+      tt1 = 0
+      tt2 = ntime-1
+    end if
+  end if
+  ;print(tt1+" , "+tt2)
+
+;------------------------------------------------------------------------------------
+; convert (file,time,lat,lon) to xx=time, yy=(flile,time), averaged over lat and lon
+;------------------------------------------------------------------------------------
+  if ( isatt(opt, "return_type") .and. opt@return_type .eq. "ftji2t_ft_avgji") then
+    varvar_all0 = ignorant_get_var_files(infilenames,varvars)
+    ;printVarSummary(varvar_all0)
+
+    varvar_all1 = lat_wgt_avg(varvar_all0) ; lat-weighted averafe, vars (files,time)
+    ;printVarSummary(varvar_all1)
+ 
+    var_yy = varvar_all1(:,tt1:tt2)
+
+    if ( isdim(varvar_all1,"time")) then
+      var_xx = varvar_all1&time(tt1:tt2)
+    else
+      ntime = dimsizes(varvar_all1(0,tt1:tt2))
+      var_xx = fspan(0.,tofloat(ntime-1),ntime)
+    end if
+  end if  ; end if of "ftji2t_ft_avgji"
+
+;------------------------------------------------------------------------------------
+; convert (var,time,lat,lon) to xx=time, yy=(var,time), averaged over lat and lon
+;------------------------------------------------------------------------------------
+  if ( isatt(opt, "return_type") .and. opt@return_type .eq. "vtji2t_vt_avgji") then
+    varvar_all0 = ignorant_get_vars_file(infilenames,varvars)
+    ;printVarSummary(varvar_all0)
+
+    varvar_all1 = lat_wgt_avg(varvar_all0) ; lat-weighted averafe, vars (variables,time)
+    ;printVarSummary(varvar_all1)
+ 
+    var_yy = varvar_all1(:,tt1:tt2)
+    delete(var_yy@long_name)  ; b.c. both @long_name and @units are a multidimensional assry. gsn_csm_xy would fail.
+
+    unit1 = var_yy@units(0)
+    delete(var_yy@units)
+    var_yy@units = unit1
+ 
+    if ( isdim(varvar_all1,"time")) then
+      var_xx = varvar_all1&time(tt1:tt2)
+    else
+      ntime = dimsizes(varvar_all1(0,tt1:tt2))
+      var_xx = fspan(0.,tofloat(ntime-1),ntime)
+    end if
+  end if  ; end if of "vtji2t_vt_avgji
+
+;------------------------------------------------------------------------------------
+; convert (file,lev,time,lat,lon) to xx=(file,pres), yy=(pres), averaged over lat and lon
+;------------------------------------------------------------------------------------
+  if ( isatt(opt, "return_type") .and. opt@return_type .eq. "ftlji2fp_p_avgtji") then
+    hyai_all   = ignorant_get_var_files(infilenames,"hyai")
+    hybi_all   = ignorant_get_var_files(infilenames,"hybi")
+    hyam_all   = ignorant_get_var_files(infilenames,"hyam")
+    hybm_all   = ignorant_get_var_files(infilenames,"hybm")
+    PS_all     = ignorant_get_var_files(infilenames,"PS")
+    P0_all     = ignorant_get_var_files(infilenames,"P0")
+    varvar_all = ignorant_get_var_files(infilenames,varvars)
+
+    if (iscoord(varvar_all,"lev")) then
+      hyaw_all = hyam_all(0,:)
+      hybw_all = hybm_all(0,:)
+      P0       = P0_all(0,0)
+    else if (iscoord(varvar_all,"ilev")) then
+      hyaw_all = hyai_all(0,:)
+      hybw_all = hybi_all(0,:)
+      P0       = P0_all(0,0)
+    end if
+    end if
+
+    if (isatt(opt,"plev")) then
+      plev_work = opt@plev
+    else
+      plev_work = plev_default
+    end if
+
+    ; do interpolation
+    varvar_all_plev = vinth2p(varvar_all, hyaw_all, hybw_all, plev_work, PS_all, 1, P0/100., 1, False)
+    copy_VarAtts(varvar_all, varvar_all_plev)
+
+    ; do time & lat & lon average
+    varvar_all_plev_tavg = dim_avg_n_Wrap(varvar_all_plev(:,tt1:tt2,:,:,:),1)
+    varvar_all_plev_tavg_ijavg = lat_wgt_avg(varvar_all_plev_tavg)
+
+    var_xx = varvar_all_plev_tavg_ijavg
+    var_yy = plev_work
+
+  end if ; end if of "ftlji2fp_p_avgtji"    
+
+;------------------------------------------------------------------------------------
+; convert (var,lev,time,lat,lon) to xx=(var,pres), yy=(pres), averaged over lat and lon
+;------------------------------------------------------------------------------------
+  if ( isatt(opt, "return_type") .and. opt@return_type .eq. "vtlji2vp_p_avgtji") then
+    ftemp1 = addfile(infilenames,"r")
+    hyai_all   = ftemp1->hyai
+    hybi_all   = ftemp1->hybi
+    hyam_all   = ftemp1->hyam
+    hybm_all   = ftemp1->hybm
+    P0_all     = ftemp1->P0
+    varvar_all = ignorant_get_vars_file(infilenames,varvars)
+
+    PS_name = varvars
+    PS_name = "PS"
+    PS_all = ignorant_get_vars_file(infilenames,PS_name)
+
+    if (iscoord(varvar_all,"lev")) then
+      hyaw_all = hyam_all
+      hybw_all = hybm_all
+      P0       = P0_all
+    else if (iscoord(varvar_all,"ilev")) then
+      hyaw_all = hyai_all
+      hybw_all = hybi_all
+      P0       = P0_all
+    end if
+    end if
+
+    if (isatt(opt,"plev")) then
+      plev_work = opt@plev
+    else
+      plev_work = plev_default
+    end if
+
+    ; do interpolation
+    varvar_all_plev = vinth2p(varvar_all, hyaw_all, hybw_all, plev_work, PS_all, 1, P0/100., 1, False)
+    copy_VarAtts(varvar_all, varvar_all_plev)
+
+    ; do time & lat & lon average
+    varvar_all_plev_tavg = dim_avg_n_Wrap(varvar_all_plev,1)
+    varvar_all_plev_tavg_ijavg = lat_wgt_avg(varvar_all_plev_tavg)
+
+    var_xx = varvar_all_plev_tavg_ijavg
+    var_yy = plev_work
+
+    delete(var_xx@long_name)  ; b.c. both @long_name and @units are a multidimensional assry. gsn_csm_xy would fail.
+    unit1 = var_xx@units(0)
+    delete(var_xx@units)
+    var_xx@units = unit1
+
+  end if ; end if of "ftlji2fp_p_avgtji"    
+
+  ;******************
+  ; if var_xx = number
+  ;******************
+  if ( isatt(opt, "var_xx_number") .and. opt@var_xx_number) then
+    nxx = dimsizes(var_xx)
+    delete(var_xx)
+    var_xx = fspan(0.,tofloat(nxx-1),nxx)
+  end if
+
+  ;******************
+  ; if var_yy = number
+  ;******************
+  if ( isatt(opt, "var_yy_number") .and. opt@var_yy_number) then
+    nyy = dimsizes(var_yy)
+    delete(var_yy)
+    var_yy = fspan(0.,tofloat(nyy-1),nyy)
+  end if
+
+;-------------
+; modify res
+;-------------
+
+  if ( isatt(opt, "update_res") .and. opt@update_res ) then
+
+    ;*************************
+    ; variable name & unit
+    ;*************************
+    if ( isatt(opt, "return_type") .and. opt@return_type .eq. "ftji2t_ft_avgji") then
+      change_var_atts(varvars,var_yy,res_work,opt_change)
+      if (isatt(var_xx,"long_name") .and. isatt(var_xx,"units")) then
+        res_work@tiXAxisString = var_xx@long_name+" ("+var_xx@units+")"
+      end if
+      res_work@gsnRightString = var_yy@units
+      res_work@tiYAxisString  = var_yy@units
+    end if
+
+    if ( isatt(opt, "return_type") .and. opt@return_type .eq. "ftlji2fp_p_avgtji") then
+      res_work@trYReverse = True
+      res_work@tiYAxisString = "Pressure (hPa)"
+
+      change_var_atts(varvars,var_xx,res_work,opt_change)
+      if (isatt(var_xx,"long_name") .and. isatt(var_xx,"units")) then
+        res_work@tiXAxisString = var_xx@long_name+" ("+var_xx@units+")"
+      end if
+    end if
+
+    if ( isatt(opt, "return_type") .and. opt@return_type .eq. "vtji2t_vt_avgji") then
+      if (isatt(var_xx,"long_name") .and. isatt(var_xx,"units")) then
+        res_work@tiXAxisString = var_xx@long_name+" ("+var_xx@units+")"
+      end if
+
+      change_var_atts("ksjdfkjsdkfjksd",var_yy,res_work,opt_change)  ; just change units so ser varname to a strange string
+      if (isatt(var_yy,"units")) then
+        res_work@tiYAxisString = var_yy@units
+      end if
+
+      if (isatt(var_yy,"var_name")) then
+        string1 = str_join(var_yy@var_name,", ")
+        res_work@gsnLeftString = string1
+      end if
+    end if
+
+    if ( isatt(opt, "return_type") .and. opt@return_type .eq. "vtlji2vp_p_avgtji") then
+      res_work@trYReverse = True
+      res_work@tiYAxisString = "Pressure (hPa)"
+      change_var_atts(varvars(0),var_xx,res_work,opt_change)
+
+      if (isatt(var_xx,"units")) then
+        res_work@tiXAxisString = var_xx@units
+      end if
+
+      if (isatt(var_xx,"var_name")) then
+        string1 = str_join(var_xx@var_name,", ")
+        res_work@gsnLeftString = string1
+      end if
+    end if
+
+    ;**********************************
+    ; x_coordinate = "12months_number"
+    ;**********************************
+    if ( isatt(opt, "x_coordinate") .and. opt@x_coordinate .eq. "12months_number") then
+      delete(var_xx)
+      var_xx = fspan(0.,11.,12)
+      res_work@tmXBMode = "Explicit"
+      res_work@tmXBValues = var_xx
+      res_work@trXMinF = 0.
+      res_work@trXMaxF = 11.
+  
+      res_work@xyMarkLineMode  = "MarkLines"  ; "Lines" "Markers"
+      res_work@xyMonoMarker = True
+      res_work@xyMarker = 4                   ; empty circle
+
+      res_work@tiXAxisString = "Month"
+
+      ;res_work@tmXBLabels = (/"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"/)
+      res_work@tmXBLabels = (/"1","2","3","4","5","6","7","8","9","10","11","12"/)
+    end if
+
+    ;**********************************
+    ; x_coordinate = "12months_1characters"
+    ;**********************************
+    if ( isatt(opt, "x_coordinate") .and. opt@x_coordinate .eq. "12months_1characters") then
+      delete(var_xx)
+      var_xx = fspan(0.,11.,12)
+      res_work@tmXBMode = "Explicit"
+      res_work@tmXBValues = var_xx
+      res_work@trXMinF = 0.
+      res_work@trXMaxF = 11.
+  
+      res_work@xyMarkLineMode  = "MarkLines"  ; "Lines" "Markers"
+      res_work@xyMonoMarker = True
+      res_work@xyMarker = 4                   ; empty circle
+
+      res_work@tiXAxisString = "Month"
+
+      res_work@tmXBLabels = (/"J","F","M","A","M","J","J","A","S","O","N","D"/)
+    end if
+
+    ;**********************************
+    ; x_coordinate = "12months_3characters"
+    ;**********************************
+    if ( isatt(opt, "x_coordinate") .and. opt@x_coordinate .eq. "12months_3characters") then
+      delete(var_xx)
+      var_xx = fspan(0.,11.,12)
+      res_work@tmXBMode = "Explicit"
+      res_work@tmXBValues = var_xx
+      res_work@trXMinF = 0.
+      res_work@trXMaxF = 11.
+  
+      res_work@xyMarkLineMode  = "MarkLines"  ; "Lines" "Markers"
+      res_work@xyMonoMarker = True
+      res_work@xyMarker = 4                   ; empty circle
+
+      res_work@tiXAxisString = "Month"
+
+      res_work@tmXBLabels = (/"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"/)
+    end if
+
+    ;*************
+    ; return res
+    ;*************
+    copy_VarAtts(res_work,res)
+
+  end if  ; end if of update_res
+
+;-----------------
+; return variable
+;-----------------
+  opt@var_xx = var_xx
+  opt@var_yy = var_yy
 
 end
