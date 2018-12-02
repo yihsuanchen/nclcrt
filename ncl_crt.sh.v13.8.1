@@ -221,7 +221,7 @@
 #    2018/11/26  ver 13.7  Modify "cesm-cn_map-flexible"
 #    2018/11/27  ver 13.7.2  Add case "ncl-read-parameters"
 #    2018/11/29  ver 13.8  REWRITE cesm-cn_2dim-flexible to include grop files & siglvl
-#    2018/12/02  ver 13.8.1  Slightly modified case "cesm-cn_2dim-flexible"
+#    2018/12/02  ver 13.8.1  Slightly modified case "cesm-cn_2dim-flexible" & "ncl-read-parameters"
 #
 #  Author:
 #    Yi-Hsuan Chen, Taiwan
@@ -27168,18 +27168,57 @@ elif [ $casename_work -a $casename_work == "ncl-read-parameters" ]; then
 cat > $ncl_name << EOF
 ;load "$ncl_name"
 ;
-; choice_read = ""
-; opt_read = ""
-; read_parameters(choice_read, opt_read)
+;########
+; usage 
+;########
+;  choice_files = 
+;  choice_var   = 
+;
+;  ss1 = ""
+;  ss2 = True
+;  choice_opt  = True
+;  read_parameters(ss1, ss2, choice_files, ss1, choice_opt)
+;  read_parameters(varvar, res_diff_vars1, choice_files, choice_var, opt11)
+;
+;  infilenames  = choice_opt@infilenames
+;  txString_ALL = choice_opt@txString_ALL
+;  plotname     = choice_opt@plotname
+;  suffixes     = choice_opt@suffixes
 
 ;#############################################
 undef("read_parameters")
-procedure read_parameters(choice:string, opt:logical)
+procedure read_parameters(varvar:string, res:logical, \
+                          choice_files:string, choice_var:string, opt:logical)
 begin
 
-  ;if (choice .eq. ) then
-  ;  opt@ = 
-  ;end if
+;&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+;  if (choice_files .eq. ) then
+;    opt@ = 
+;  end if
+;
+;&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+;  if (choice_var .eq. ) then
+;    res@ = 
+;
+;    if (varvar.eq."") then
+;      opt@cnlevels_predefine = True
+;      res@cnLevelSelectionMode = "ManualLevels"
+;      res@cnMinLevelValF = 
+;      res@cnMaxLevelValF = 
+;      res@cnLevelSpacingF = 
+;    end if
+;  end if
+
+;&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+;&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+  ; return variables
+
+  opt@infilenames = infilenames
+  opt@txString_ALL = txString_ALL
+  opt@plotname = plotname
+  opt@suffixes = suffixes
+;&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+;&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
 end
 ;### end of ###
