@@ -116,6 +116,12 @@
 ;           2018/11/18         ADD cases in ignorant_convert_1Ddata
 ;           2018/11/26         Slightly modify
 ;           2018/11/29         Slightly modify
+;           2018/12/05         Modify cnColors_PosNeg to use weaker color when number of positive/negative is less than 3
+;           2018/12/22         ADD "monthly_series_tlji2ypm_avgji" into ignorant_convert_2Ddata
+;           2019/01/02         Debug cnColors_PosNeg if all levels are > or < 0.
+;           2019/01/10         ADD procedure ignorant_sameLB
+;           2019/01/26         Update
+;           2019/01/31         Update
 ;*****************************************************
 
 ;!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -124,6 +130,17 @@
 ;
 ; load "/home/chishin/ncarg/lib/ncarg/nclscripts/csm/gsn_code.ncl"
 ; load "/home/chishin/ncarg/lib/ncarg/nclscripts/wrf/WRFUserARW.ncl"
+;
+; procedure ignorant_sameLB(infilenames[*]:string, varvar[1]:string, nclres[1]:logical, opt_sameLB[1]:logical)
+;   get cnLevels from input data
+;     infilenames: input file names
+;     varvar     : variable name
+;     nclres     : NCL res
+;     opt_sameLB : option
+;       opt_sameLB@factor        = 0.9 (default). set factor to adjust min/max value
+;       opt_sameLB@max_levels    = 15  (default). set contour levels
+;       opt_sameLB@diff2base     = True.        . find cn values for difference with respect to filename_base
+;       opt_sameLB@filename_base = ""           . name of base file. If filename_base is set, diff2base will be set to True
 ;
 ; function ignorant_ttest(x:numeric, y:numeric, opt[1]:logical)
 ;   do Student's t-test except the first dimension and return p-values, prob. 
@@ -943,6 +960,19 @@ if (option_cnlevels) then
   end if
   end if
   end if
+
+  ;*** if all cnlevels are > 0. ***
+  if (all(cnlevels.ge.0.)) then 
+    num_negative = 0
+    num_positive = num_cncolors
+  end if
+
+  ;*** if all cnlevels are < 0. ***
+  if (all(cnlevels.le.0.)) then 
+    num_negative = num_cncolors
+    num_positive = 0
+  end if
+ 
   ;print("num_negative: "+num_negative+", num_positive: "+num_positive)
 
   ;************
@@ -983,17 +1013,31 @@ if (option_cnlevels) then
     cmap_index_neg_end = num_cmap_negative-1
   end if
 
+  ; if number of negative values is too few, use 1/3 color index
+  if (.not.isatt(opt_cncolors, "colormap_negative_index_start")) then
+    if (num_negative .le. 3) then
+      cmap_index_neg_start = (num_cmap_negative-1)/3
+    end if
+  end if
+
+  ; if number of positive values is too few, use 1/3 color index
+  if (.not.isatt(opt_cncolors, "colormap_positive_index_end")) then
+    if (num_positive .le. 3) then
+      cmap_index_pos_end = (num_cmap_positive-1)/3
+    end if
+  end if
+
   ; get index of colormap
   if (num_positive .gt. 1) then
     cmap_index_positive = toint (fspan(tofloat(cmap_index_pos_start),tofloat(cmap_index_pos_end),num_positive))
   else
-    cmap_index_positive = 1
+    cmap_index_positive = cmap_index_pos_start
   end if
 
   if (num_negative .gt. 1) then
     cmap_index_negative = toint (fspan(tofloat(cmap_index_neg_start),tofloat(cmap_index_neg_end),num_negative))
   else
-    cmap_index_negative = 1
+    cmap_index_negative = cmap_index_neg_start
   end if
 
   ; assign colors
@@ -1020,9 +1064,9 @@ if (option_cnlevels) then
 
     ;*** set least positive/negative to white ***
     i = num_negative-1
-    cncolors(i,:) = 0.
+    cncolors(i,:) = 1.  ; white
     i = num_negative
-    cncolors(i,:) = 0.
+    cncolors(i,:) = 1.  ; white
   end if
 
   ;*****************
@@ -1096,7 +1140,6 @@ if (option_cnlevels) then
   delete(num_cmap_negative)
 
 end if  ; end if of option_cnlevels
-
 
 end
 ;##### end of cnColors_PosNeg ####
@@ -1419,6 +1462,12 @@ begin
   ;*** Pressure ***
   if (unit_conversion .eq. "mb_TO_Pa") then
     var_to = var_to * hpa2pa
+    flag_conversion = True
+  end if
+
+  ;*** Pressure ***
+  if (unit_conversion .eq. "Pa_TO_hPa") then
+    var_to = var_to * pa2hpa
     flag_conversion = True
   end if
 
@@ -2278,9 +2327,13 @@ begin
   lat = data_in&lat  ; latitude must in -90 to 90
 
   coslat = abs(cos(lat/180.*pi))
-  ; function wgt_areaaveq (q[(...),y,x]:numeric, wgty [*]:numeric, wgtx[*]:numeric, 
-  ;                        opt:integer, 0: calculate only non-missing data; 1:return missing value if there is any missing data)
+  ; function wgt_areaave (q[(...),y,x]:numeric, wgty [*]:numeric, wgtx[*]:numeric, 
+  ;                       opt:integer, 0: calculate only non-missing data; 1:return missing value if there is any missing data)
+  ; ** yihsuan note 2019-01-24 *** : opt=0,1 works for wgt_areaave, but NOT work for wgt_areaave_Wrap
   data_out = wgt_areaave_Wrap(data_in,coslat,1.0,1)
+
+  ;data_out00 = wgt_areaave(data_in,coslat,1.0,1)  ; if return missing value if there is any missing data
+  ;data_out = (/data_out00/)
 
   if (isatt(data_in,"long_name")) then
     data_out@long_name = data_in@long_name ;+ " (latitude-weighted area mean)"
@@ -2289,6 +2342,47 @@ begin
   end if
 
   return(data_out)
+
+;*** brute force way ***
+;  pi = acos(-1.)
+;  lat = data_in&lat  ; latitude must in -90 to 90
+;  coslat = tofloat(abs(cos(lat/180.*pi)))
+;
+;  dim = dimsizes(dimsizes(data_in))
+;
+;  print("num of missing data: "+num(ismissing(data_in)))
+;
+;  if (dim.eq.3) then
+;    sum_datain = data_in(:,0,0)
+;    sum_datain = 0.
+;
+;    avg_datain = sum_datain
+;
+;    nyy = dimsizes(data_in(0,:,0))
+;    nxx = dimsizes(data_in(0,0,:))
+;    nn1 = dimsizes(data_in(:,0,0))
+;
+;    do n1=0,nn1-1
+;      count = 0
+;      do xx=0,nxx-1
+;      do yy=0,nyy-1
+;        if (.not.ismissing(data_in(n1,yy,xx))) then
+;          sum_datain(n1) = sum_datain(n1) + data_in(n1,yy,xx)*coslat(yy)
+;          count = count+1
+;        end if
+;      end do ; end loop of yy
+;      end do ; end loop of xx
+;
+;      avg_datain(n1) = sum_datain(n1)/tofloat(count)
+;    end do ; end loop of nn1
+;
+;    print("count= "+count)
+;  end if  ; end if of dim=3
+;
+;  ;print(avg_datain)
+;  data_out = avg_datain
+;*** brute force way ***
+
 
 end
 ;### end of lat_wgt_avg ###
@@ -3463,8 +3557,8 @@ if (opt_chgatt) then
   end if
 
   if (varname.eq."FSNS") then
-    ;varin0 = varin
-    varin = -1. * varin
+    varin0 = varin
+    ;varin = -1. * varin
     ;print(varin0+" , "+varin)
   end if
 
@@ -3634,7 +3728,7 @@ if (opt_chgatt) then
       end if
   
       cnColors_PosNeg(varin_temp1, res, opt_work)
-  
+      ;copy_VarAtts(opt_work, opt_chgatt)
     end if ; end if of opt_chgcolors
   
   end if ; end if of opt_chgatt@chg_cncolors
@@ -3687,26 +3781,34 @@ if (opt_chgatt) then
                   (/"CLDTOT"		, "Total cloud fraction"/),  \ 
                   (/"EVAP"		, "Evaporation rate"/),  \ 
                   (/"FLDS"		, "Dn LW flux at the surf"/), \
-                  (/"FLDSC"		, "clr-sky surf Dn LW flux"/), \
+                  (/"FLDSC"		, "clrsky surf Dn LW flux"/), \
                   (/"FLNS"		, "Net Up LW flux at the surface"/), \
                   (/"FLNSC"		, "clrsky Surf Net Up LW flux"/), \
+                  (/"FLUS"		, "Up LW flux at the surf"/), \
                   (/"FLUT"		, "Outgoing LW radiation"/), \
                   (/"FLUTC"		, "clrsky OLR"/), \
                   (/"FSDS"		, "Dn SW flux at the surf"/), \
-                  (/"FSDSC"		, "clr-sky Dn SW flux at the surf"/), \
-                  (/"FSNS"		, "Net Dw SW flux at the surface"/), \
+                  (/"FSDSC"		, "clr-sky Surf Dn SW flux"/), \
+                  (/"FSNS"		, "Net Surf Dw SW flux"/), \
+                  (/"FSNSC"		, "clrsky Net Surf Dw SW flux"/), \
+                  (/"FSUS"		, "Up SW flux at the surf"/), \
+                  (/"FSUSC"		, "clr-sky Surf Up SW flux"/), \
                   (/"FSNTOA"		, "Net Dw SW flux at the TOA"/), \
+                  (/"FSNTOAC"		, "clrsky TOA Net Dw SW flux"/), \
                   (/"FSUTOA"            , "Up SW flux at the TOA"/), \
                   (/"ICEFRAC"           , "Sea ice fraction"/), \
                   (/"LHFLX"		, "Latent heat flux"/), \
                   (/"LWCF_SURF"         , "Surf LW Cloud Forcing"/), \
                   (/"LWCOOL_TOA_TO_SURF", "Column LW Cooling"/), \
-                  (/"OMEGA500"		, "~F33~w~F~ at 500 hPa"/), \
+                  (/"MET"		, "Meridional energy transport"/), \
                   (/"NETCOOL_TOA_TO_SURF","Column Net Cooling"/), \
+                  (/"OMEGA500"		, "~F33~w~F~ at 500 hPa"/), \
+                  (/"P_minus_E"         , "Precip - Evap"/), \
                   (/"PRECC"		, "Conv Prec"/), \
                   (/"PRECL"		, "Stratiform Prec"/), \
                   (/"PRECT"		, "Total Prec"/), \
                   (/"RADCOOL_TOA_TO_SURF","Column Net Rad Cooling"/), \
+                  (/"RADSURF"		, "Surf residual energy flux"/), \
                   (/"SHFLX"		, "Sensible heat flux"/), \
                   (/"SWCF_SURF"         , "Surf SW Cloud Forcing"/), \
                   (/"SWWARM_TOA_TO_SURF", "Column SW Heating"/), \
@@ -3951,6 +4053,16 @@ if (option_diagnose) then
     var_temp@units     = "W/m2"
   end if
 
+  if ( varname .eq. "FLUSC" ) then
+    FLDSC_temp  = file_temp->FLDSC
+    FLNSC_temp  = file_temp->FLNSC
+
+    FLUSC_temp  = plus(FLDSC_temp,FLNSC_temp)
+    var_temp  = FLUSC_temp
+    var_temp@long_name = "Upward LW flux at the surface"
+    var_temp@units     = "W/m2"
+  end if
+
   if ( varname .eq. "FSUS" ) then
     FSDS_temp = file_temp->FSDS
     FSNS_temp = file_temp->FSNS
@@ -3958,6 +4070,16 @@ if (option_diagnose) then
     FSUS_temp = diff(FSDS_temp,FSNS_temp)
     var_temp = FSUS_temp
     var_temp@long_name = "Upward SW flux at the surface"
+    var_temp@units     = "W/m2"
+  end if
+
+  if ( varname .eq. "FSUSC" ) then
+    FSDSC_temp = file_temp->FSDSC
+    FSNSC_temp = file_temp->FSNSC
+  
+    FSUSC_temp = diff(FSDSC_temp,FSNSC_temp)
+    var_temp = FSUSC_temp
+    var_temp@long_name = "clr-sky Upward SW flux at the surface"
     var_temp@units     = "W/m2"
   end if
 
@@ -4274,7 +4396,7 @@ if (option_diagnose) then
     var_temp@units     = "W/m2"
   end if
 
-  if ( varname .eq. "Meridional_energy_transport" ) then
+  if ( varname .eq. "MET" ) then
 
     ; Meridional energy transport is based on Eq (2), Frierson and Hwang (2011, J. Climate)
     pi = acos(-1.)
@@ -4649,8 +4771,12 @@ begin
                 "tlji2tpj_avgi", \
                 "tji2jt_avgi", \
                 "tji2ji_avgt", \
-                "tpj2pj_avgt" \
-                /)
+                "tpj2pj_avgt", \
+                "monthly_series_tlji2ypm_avgji", \
+                "monthly_series_tji2yjm_avgi", \
+                "monthly_series_tji2ymji", \
+                "sdlkfjsldjflsjdflsdjfl" \  
+              /)
 
   plev_default = (/1., 2., 3., 5., 7., 10., 20., 30., 50., 70., 100., 125., 150., 175., 200., 225., \
       250., 300., 350., 400., 450., 500., 550., 600., 650., 700., 750., 775., 800., 825., \
@@ -5113,6 +5239,183 @@ begin
 ; convert (time,plev,lat) to (plev,lat)
 ;   1. do time average
 ;--------------------------------------------
+  if ( isatt(opt, "return_type") .and. opt@return_type .eq. "monthly_series_tlji2ypm_avgji") then
+
+    ntime = dimsizes(varvar_tmp(:,0,0,0))
+    if (mod(ntime,12).eq.0) then
+
+      nyears = ntime/12
+
+      ;*** read the variable ***
+      hyai_tmp   = filetemp->hyai      ; hybrid A coefficient at layer interface
+      hybi_tmp   = filetemp->hybi      ; hybrid B coefficient at layer interface
+      hyam_tmp   = filetemp->hyam      ; hybrid A coefficient at layer midpoints
+      hybm_tmp   = filetemp->hybm      ; hybrid B coefficient at layer midpoints
+      PS_tmp     = filetemp->PS        ; surface pressures  in Pa
+      P0_tmp     = filetemp->P0        ; reference pressure in Pa
+  
+      if (iscoord(varvar_tmp,"lev")) then
+        hyaw_tmp  = hyam_tmp
+        hybw_tmp  = hybm_tmp
+      else if (iscoord(varvar_tmp,"ilev")) then
+        hyaw_tmp  = hyai_tmp
+        hybw_tmp  = hybi_tmp
+      end if
+      end if
+  
+      ;*** set pressure levels for interpolation ***
+      if ( isatt(opt, "plev") ) then
+        plev_work = opt@plev
+      else
+        plev_work = plev_default
+      end if
+  
+      ; do interpolation
+      varvar_tmp_plev = vinth2p(varvar_tmp, hyaw_tmp, hybw_tmp, plev_work, PS_tmp, 1, P0_tmp/100., 1, False)
+      copy_VarAtts(varvar_tmp, varvar_tmp_plev)
+
+      varvar_tmp_plev_jiavg = lat_wgt_avg(varvar_tmp_plev)
+
+      nplev = dimsizes(varvar_tmp_plev_jiavg(0,:))
+
+      varvar_tmp_plev_jiavg_1d = ndtooned(varvar_tmp_plev_jiavg)
+      varvar_tmp_ypm0           = onedtond(varvar_tmp_plev_jiavg_1d,(/nyears,12,nplev/))
+      copy_VarAtts(varvar_tmp, varvar_tmp_ypm0)
+
+      varvar_tmp_ypm0!0 = "year"
+      varvar_tmp_ypm0!1 = "month"
+      varvar_tmp_ypm0!2 = "lev_p"
+
+      year_coord  = fspan(0.,tofloat(nyears-1),nyears)
+      month_coord = fspan(0.,11.,12)
+      lev_p_coord = varvar_tmp_plev&lev_p
+
+      varvar_tmp_ypm0&year  = year_coord
+      varvar_tmp_ypm0&month = month_coord
+      varvar_tmp_ypm0&lev_p = lev_p_coord
+
+      varvar_tmp_ypm = varvar_tmp_ypm0(year|:,lev_p|:,month|:)
+
+      varvar_return = varvar_tmp_ypm
+      ;printVarSummary(varvar_return)
+
+      ;*** check ***
+      ;ppp = 36
+      ;mmm = 11
+      ;print(varvar_tmp_plev_jiavg(mmm::12,ppp)+" , "+varvar_return(:,ppp,mmm))
+
+    else
+      print("ERROR: (ignorant_convert_2Ddata) use ["+opt@return_type+"] time steps MUST be 12x times")
+      varvar_return = 0.
+    end if
+
+    option_execute = True    
+
+  end if ; end if of "monthly_series_tlji2ypm_avgji"
+
+;--------------------------------------------
+; convert (year*month,lat,lon) to (year,month,lat)
+;   1. do lon average
+;--------------------------------------------
+  if ( isatt(opt, "return_type") .and. opt@return_type .eq. "monthly_series_tji2yjm_avgi") then
+    ntime = dimsizes(varvar_tmp(:,0,0))
+    if (mod(ntime,12).eq.0) then
+
+      nyears = ntime/12
+
+      nlat = dimsizes(varvar_tmp(0,:,0))
+
+      varvar_tmp_iavg = dim_avg_n_Wrap(varvar_tmp,2)
+      varvar_tmp_iavg_1d = ndtooned(varvar_tmp_iavg)
+      varvar_tmp_yjm0    = onedtond(varvar_tmp_iavg_1d,(/nyears,12,nlat/))
+      copy_VarAtts(varvar_tmp, varvar_tmp_yjm0)
+
+      varvar_tmp_yjm0!0 = "year"
+      varvar_tmp_yjm0!1 = "month"
+      varvar_tmp_yjm0!2 = "lat"
+
+      year_coord  = fspan(0.,tofloat(nyears-1),nyears)
+      month_coord = fspan(0.,11.,12)
+      lat_coord = varvar_tmp&lat
+
+      varvar_tmp_yjm0&year  = year_coord
+      varvar_tmp_yjm0&month = month_coord
+      varvar_tmp_yjm0&lat = lat_coord
+
+      varvar_tmp_yjm = varvar_tmp_yjm0(year|:,lat|:,month|:)
+
+      varvar_return = varvar_tmp_yjm
+
+    else
+      print("ERROR: (ignorant_convert_2Ddata) use ["+opt@return_type+"] time steps MUST be 12x times")
+      varvar_return = 0.
+    end if
+
+    ;printVarSummary(varvar_return)
+
+    ;*** check ***
+    ;jjj = 10
+    ;mmm = 11
+    ;print(varvar_tmp_iavg(mmm::12,jjj)+" , "+varvar_return(:,jjj,mmm))
+
+    option_execute = True    
+
+  end if ; end if of "monthly_series_tji2yjm_avgi"
+
+;--------------------------------------------
+; convert (year*month,lat,lon) to (year,month,lat,lon)
+;--------------------------------------------
+  if ( isatt(opt, "return_type") .and. opt@return_type .eq. "monthly_series_tji2ymji") then
+    ntime = dimsizes(varvar_tmp(:,0,0))
+    if (mod(ntime,12).eq.0) then
+
+      nyears = ntime/12
+
+      nlat = dimsizes(varvar_tmp(0,:,0))
+      nlon = dimsizes(varvar_tmp(0,0,:))
+
+      varvar_tmp_1d = ndtooned(varvar_tmp)
+      varvar_tmp_ymji0    = onedtond(varvar_tmp_1d,(/nyears,12,nlat,nlon/))
+      copy_VarAtts(varvar_tmp, varvar_tmp_ymji0)
+
+      varvar_tmp_ymji0!0 = "year"
+      varvar_tmp_ymji0!1 = "month"
+      varvar_tmp_ymji0!2 = "lat"
+      varvar_tmp_ymji0!3 = "lon"
+
+      year_coord  = fspan(0.,tofloat(nyears-1),nyears)
+      month_coord = fspan(0.,11.,12)
+      lat_coord = varvar_tmp&lat
+      lon_coord = varvar_tmp&lon
+
+      varvar_tmp_ymji0&year  = year_coord
+      varvar_tmp_ymji0&month = month_coord
+      varvar_tmp_ymji0&lat = lat_coord
+      varvar_tmp_ymji0&lon = lon_coord
+
+      varvar_tmp_ymji = varvar_tmp_ymji0
+
+      varvar_return = varvar_tmp_ymji
+
+    else
+      print("ERROR: (ignorant_convert_2Ddata) use ["+opt@return_type+"] time steps MUST be 12x times")
+      varvar_return = 0.
+    end if
+
+    ;printVarSummary(varvar_return)
+
+    ;*** check ***
+    ;jjj = 10
+    ;mmm = 11
+    ;print(varvar_tmp_iavg(mmm::12,jjj)+" , "+varvar_return(:,jjj,mmm))
+
+    option_execute = True    
+
+  end if ; end if of "monthly_series_tji2ymji"
+;--------------------------------------------
+; convert (time,plev,lat) to (plev,lat)
+;   1. do time average
+;--------------------------------------------
   if ( isatt(opt, "return_type") .and. opt@return_type .eq. "tpj2pj_avgt") then
 
     varvar_temp_tavg = dim_avg_n_Wrap(varvar_temp,0)
@@ -5136,6 +5439,7 @@ begin
     varvar_return = varvar_tmp
 
   end if
+
 
 ;------------------------
 ; option: change monotonically lon
@@ -5198,6 +5502,8 @@ begin
   opt_chgatt = True
   opt_chgatt@chg_cncolors = False
   change_var_atts(varvar, varvar_return, res11, opt_chgatt)
+
+  varvar_return@infilename = infilename
   return(varvar_return)
 end
 ;### end of ignorant_convert_2Ddata ###
@@ -5483,6 +5789,7 @@ begin
   case_names = (/ \
                 "tji2tijOneD", \
                 "tji2ijOneD_avgt", \
+                "tji2tjOneD_avgi", \
                 "vtji2t_vt_avgji", \
                 "vtlji2vp_p_avgtji", \
                 "vtj2j_vj_avgt", \
@@ -5493,8 +5800,11 @@ begin
                 "ftji2j_fj_avgti", \
                 "monthly_series_ftji2m_fm_avgyji", \
                 "monthly_series_vtji2m_vm_avgyji", \
+                "monthly_series_tji2tjOneD_season_avgi", \
+                "monthly_series_tji2tjOneD__avgi", \
                 "zzzlkjdflajsldfjlsdjf-no_use" \
                 /)
+;flag11
 
   ;*** set res_work ***
   res_work = True
@@ -5630,6 +5940,7 @@ begin
 ;-----------------------------------------------------------------------------------------------------------------
 ; convert (file,year*month,lat,lon) to xx=(month), yy=(month,file)), fmy=(file,year,month) averaged over lon.lat
 ;-----------------------------------------------------------------------------------------------------------------
+;flag11
   if ( isatt(opt, "return_type") .and. opt@return_type .eq. "monthly_series_ftji2m_fm_avgyji") then
     varvar_all0 = ignorant_get_var_files(infilenames,varvars)
     ;printVarSummary(varvar_all0)
@@ -5719,6 +6030,93 @@ begin
   end if
 
 ;------------------------------------------------------------------------------------
+; convert (time,lat,lon) to xx=1D(time,lat), yy=1D(time,lat), averaged over lon
+;------------------------------------------------------------------------------------
+  if ( isatt(opt, "return_type") .and. opt@return_type .eq. "tji2tjOneD_avgi") then
+    var_temp0 = ignorant_get_vars_file(infilenames,varvars) ; var_temp0 = (var,time,lat,lon)
+    ;printVarSummary(var_temp0)
+    var_temp  = var_temp0(0,tt1:tt2,:,:)  ; var_temp = (time,lat,lon)
+    var_temp_iavg = dim_avg_n_Wrap(var_temp,2)
+    ;printVarSummary(var_temp_tavg)
+
+    var_temp_iavg_1D = ndtooned(var_temp_iavg)
+    copy_VarAtts(var_temp_iavg,var_temp_iavg_1D)
+    var_temp_iavg_1D@redimension = "convert (time,lat) to 1D data using ndtooned"
+    ;printVarSummary(var_temp_tavg_1D)
+
+    var_xx = var_temp_iavg_1D
+    var_yy = var_temp_iavg_1D
+
+    var_atts = var_xx
+
+    ;atts1 = getvaratts(var_temp_tavg)
+    ;natts = dimsizes(atts1)
+    ;do i=0,natts-1
+    ;  att = atts1(i)
+    ;  opt@$att$ = var_temp_tavg@$att$
+    ;end do
+    ;copy_VarAtts(var_temp_tavg,opt) ; "this would have error message: totype: warning: cannot convert input variable type <float> to type: <logical>" 
+  end if
+
+;-----------------------------------------------------------------------------------------------------------------
+; convert (var,year*month,lat,lon) to xx=1D(month of season,lat), yy=1D(month of season,lat), averaged over lon
+;-----------------------------------------------------------------------------------------------------------------
+
+;flag11
+
+  if ( isatt(opt, "return_type") .and. opt@return_type .eq. "monthly_series_tji2tjOneD_season_avgi") then
+    var_temp0 = ignorant_get_vars_file(infilenames,varvars) ; var_temp0 = (var,time,lat,lon)
+    ;printVarSummary(var_temp0)
+
+    var_temp  = var_temp0(0,tt1:tt2,:,:)  ; var_temp = (time,lat,lon)
+    ntime = dimsizes(var_temp(:,0,0))
+
+    if (mod(ntime,12).eq.0 .and. isatt(opt,"season")) then
+      if (opt@season.eq."DJF") then
+        mm = (/0,1,11/)
+      end if
+      if (opt@season.eq."MAM") then
+        mm = (/2,3,4/)
+      end if
+      if (opt@season.eq."JJA") then
+        mm = (/5,6,7/)
+      end if
+      if (opt@season.eq."SON") then
+        mm = (/8,9,10/)
+      end if
+
+      var_temp_iavg = dim_avg_n_Wrap(var_temp,2) ; var_temp_iavg(time,lat)
+      ;print(var_temp_iavg)
+      ;printVarSummary(var_temp_iavg)
+
+      var_temp_iavg_month1 = var_temp_iavg(mm(0)::12,:)
+      var_temp_iavg_month2 = var_temp_iavg(mm(1)::12,:)
+      var_temp_iavg_month3 = var_temp_iavg(mm(2)::12,:)
+
+      var_temp_iavg_season = (/var_temp_iavg_month1,var_temp_iavg_month2,var_temp_iavg_month3/)
+      var_temp_iavg_season_1D = ndtooned(var_temp_iavg_season)
+      copy_VarAtts(var_temp_iavg,var_temp_iavg_season_1D)
+      var_temp_iavg_season_1D@redimension = "convert (time,lat) to 1D data using ndtooned"
+      ;print(var_temp_iavg_season_1D)
+
+      ;print(opt)
+      ;printVarSummary(var_temp_iavg_season_1D)
+
+      var_xx = var_temp_iavg_season_1D
+      var_yy = var_temp_iavg_season_1D
+
+      var_atts = var_xx
+
+    else
+      print("ERROR: (ignorant_convert_1Ddata) use ["+opt@return_type+"] MUST set opt@season = DJF,MAM,JJA,SON")
+      print("ERROR: (ignorant_convert_1Ddata) use ["+opt@return_type+"] time steps MUST be 12x times. current time step ["+ntime+"]")
+      var_xx = 0.
+      var_yy = 0.
+    end if
+  end if
+
+
+;------------------------------------------------------------------------------------
 ; convert (var,time,lat,lon) to xx=lat, yy=(var,lat), averaged over time,longitude
 ;------------------------------------------------------------------------------------
   if ( isatt(opt, "return_type") .and. opt@return_type .eq. "vtji2j_vj_avgti") then
@@ -5798,6 +6196,10 @@ begin
       var_xx = fspan(0.,tofloat(nlat-1),nlat)
     end if
     end if
+
+    var_ftj = varvar_all00
+    opt@var_ftj = var_ftj
+
   end if  ; end if of "ftj2j_fj_avgt"
 
 ;------------------------------------------------------------------------------------
@@ -5878,12 +6280,33 @@ begin
     varvar_all_plev = vinth2p(varvar_all, hyaw_all, hybw_all, plev_work, PS_all, 1, P0/100., 1, False)
     copy_VarAtts(varvar_all, varvar_all_plev)
 
-    ; do time & lat & lon average
-    varvar_all_plev_tavg = dim_avg_n_Wrap(varvar_all_plev(:,tt1:tt2,:,:,:),1)
-    varvar_all_plev_tavg_ijavg = lat_wgt_avg(varvar_all_plev_tavg)
+    ;*** do lat/lon avg first then time. This is more reasonable ***
+    varvar_all_plev_ijavg = lat_wgt_avg(varvar_all_plev)
+    ;printVarSummary(varvar_all_plev_ijavg)
 
-    var_xx = varvar_all_plev_tavg_ijavg
+    varvar_all_plev_ijavg_tavg = dim_avg_n_Wrap(varvar_all_plev_ijavg(:,tt1:tt2,:),1)
+    ;printVarSummary(varvar_all_plev_ijavg_tavg)
+    ;*** do lat/lon first then time ***
+
+    ;*** do time avg first then lat/lon ***
+    ;varvar_all_plev_tavg = dim_avg_n_Wrap(varvar_all_plev(:,tt1:tt2,:,:,:),1)
+    ;printVarSummary(varvar_all_plev_tavg)
+
+    ;varvar_all_plev_tavg_ijavg = lat_wgt_avg(varvar_all_plev_tavg)
+    ;;printVarSummary(varvar_all_plev_tavg_ijavg)
+    ;*** do time avg first then lat/lon ***
+
+    ;*** these two MUST be equal ***
+    ;var111 = varvar_all_plev_ijavg_tavg
+    ;var222 = varvar_all_plev_tavg_ijavg
+    ;var11m22 = diff(var111,var222)
+    ;print("qqq, "+var111+" , "+var222+" , "+var11m22)
+
+    var_xx = varvar_all_plev_ijavg_tavg
     var_yy = plev_work
+
+    var_ftp = varvar_all_plev_ijavg
+    opt@var_ftp = var_ftp
     
   end if ; end if of "ftlji2fp_p_avgtji"    
 
@@ -6185,6 +6608,7 @@ begin
   do i=0,natts-1
     att = atts1(i)
     opt@$att$ = var_atts@$att$
+    varvars@$att$ = var_atts@$att$
   end do
 
 end
@@ -6219,6 +6643,142 @@ begin
 
 end
 ;### end of dimsizes_compare ###
+
+;#############################################
+undef("ignorant_sameLB")
+procedure ignorant_sameLB(infilenames[*]:string, varvar[1]:string, nclres[1]:logical, opt_sameLB[1]:logical)
+begin
+
+if (opt_sameLB) then
+
+  ;*************
+  ; initialize
+  ;*************
+  if (isatt(opt_sameLB,"factor") .and. isfloat(opt_sameLB@factor)) then
+    factor = opt_sameLB@factor
+  else
+    factor = 1.
+  end if
+
+  if (isatt(opt_sameLB,"max_levels") .and. isint(opt_sameLB@max_levels)) then
+    max_levels = opt_sameLB@max_levels
+  else
+    max_levels = 15
+  end if
+
+  filename_base = ""
+  if (isatt(opt_sameLB,"filename_base") .and. isstring(opt_sameLB@filename_base)) then
+    opt_sameLB@diff2base = True
+  end if
+
+  ;*********************************************************
+  ; calculate the maximum and minimun in the input variables
+  ;*********************************************************
+  nfile = dimsizes(infilenames)
+  cnmin = 9999999999999.
+  cnmax = -9999999999999.
+
+  if (isatt(opt_sameLB,"diff2base") .and. opt_sameLB@diff2base) then
+    if (isatt(opt_sameLB,"filename_base") .and. isstring(opt_sameLB@filename_base)) then
+      filename_base = opt_sameLB@filename_base
+    else
+      filename_base = infilenames(nfile-1)
+      print("WARNING: (ignorant_sameLB) @filename_base is not set. Set to "+filename_base)
+    end if
+
+    var_base = ignorant_convert_2Ddata(filename_base, varvar, opt_sameLB)
+    ;printVarSummary(var_base)
+  end if
+
+  do ff=0,nfile-1
+    infilename_any = infilenames(ff)
+    var_any = ignorant_convert_2Ddata(infilename_any, varvar, opt_sameLB)
+    ;printVarSummary(var_any)
+
+    if (isatt(opt_sameLB,"diff2base") .and. opt_sameLB@diff2base) then
+      var_work = diff(var_any,var_base)
+    else
+      var_work = var_any
+    end if
+
+    ;*** get boundaries by Max/Min ***
+    ;min1 = min(var_work)
+    ;max1 = max(var_work)
+
+    ;*** get boundaries by percentile ***
+    stat_var_work = stat_dispersion(var_work,False)
+    min1 = stat_var_work(3)   ; lower dectile
+    max1 = stat_var_work(13)  ; upper dectile 
+
+    if (min1 .le. cnmin) then
+      cnmin = min1
+    end if
+
+    if (max1 .ge. cnmax) then
+      cnmax = max1
+    end if
+
+    delete(infilename_any)
+    delete(var_any)
+  end do  ; end loop of files
+  ;print("min: "+cnmin+", max: "+cnmax)
+
+  ;******************************************
+  ; get boundaries of contour levels - by Max/Min values
+  ;******************************************
+
+  ;*** modify the max & min
+  if (cnmin .lt. 0.) then
+    factor_min = factor
+  else
+    factor_min = 1. + 1.-factor
+  end if
+
+  if (cnmax .lt. 0.) then
+    factor_max = 1. + 1.-factor
+  else
+    factor_max = factor
+  end if
+
+  cnmin1 = cnmin * factor_min
+  cnmax1 = cnmax * factor_max
+  if (cnmin1 .gt. cnmax1) then
+    cnmin1 = cnmin
+    cnmax1 = cnmax
+  end if
+
+  ;print("min: "+cnmin+", max: "+cnmax)
+  ;print("factor min: "+factor_min+", factor max: "+factor_max)
+  ;print("min work: "+cnmin1+", max work: "+cnmax1)
+
+  ;********************** 
+  ; get contour levels
+  ;********************** 
+  mnmxint = nice_mnmxintvl(cnmin1, cnmax1, max_levels, False)
+  ;print(mnmxint)
+  cnmin1 = mnmxint(0)
+  cnmax1 = mnmxint(1)
+  cnint1 = mnmxint(2)
+
+  ;*********
+  ; return
+  ;*********
+
+  nclres@cnLevelSelectionMode = "ManualLevels"
+  nclres@cnMinLevelValF = cnmin1
+  nclres@cnMaxLevelValF = cnmax1
+  nclres@cnLevelSpacingF = cnint1
+
+  opt_sameLB@infilenames   = infilenames
+  opt_sameLB@filename_base = filename_base
+
+  ;print("min: "+cnmin+", max: "+cnmax)
+
+end if ; end if of opt_sameLB
+
+end
+;### end of ignorant_sameLB ###
+;#############################################
 
 
 ;#############################################
