@@ -1,0 +1,5969 @@
+#!/bin/bash 
+#===================================
+#  Bourne-Again shell script at flux @ U of Michigan
+#
+#  Description:
+#    create bash script demo
+#
+#  Usage:
+#    > sh_crt.sh [sh_name]
+#
+#  History:
+#    2014/05/13  ver 1.0 
+#    2014/12/18  ver 1.1 , ADD homepath 
+#    2016/05/05  ver 2.0 , ADD read parameters in the command line
+#			   ADD "-dir"  option, can read directory at command line
+#			   ADD "-case" option, can save often-used cases
+#			   ADD case "list-files-dir", given directory and list files in it
+#    2016/05/16  ver 2.1 , ADD "-add" option, can rewrite sample bash script to the format that sh_crt used
+#                          ADD case "ncks-files", lsit files under datadir, and use ncks command
+#    2016/05/26  ver 2.2 , ADD case "nc-change-atts"
+#    2016/05/31  ver 2.3 , ADD option "-func"
+#    2016/06/16  ver 2.3 , MODIFY case "ncks-files"
+#    2016/06/16  ver 2.4 , ADD case "html-create"
+#    2016/06/21  ver 2.5 , ADD case "bash-parameters"
+#    2016/07/05  ver 2.6 , ADD case "ncdiff-2files"
+#                          ADD "-file,-f" options
+#    2016/07/08  ver 2.7 , ADD case "cesm-monthly2climo_old"
+#                          MODIFY "-add" code to let check part appear at the top
+#    2016/08/07  ver 2,8 , ADD check files path in case "list-files-dir", "ncks-files", "nc-change-atts"
+#                          ADD case "convert-eps2png","ncks-append-files"
+#    2016/08/09  ver 2.9 , ADD case "list-files-command"
+#                          MODIFU case "ncks-files" to read files from commamd line
+#    2016/08/26  ver 3.0 , ADD case "cesm-monthly2annual"
+#                          MODIFY add case part
+#                          MODIFY default write case part
+#    2016/11/14  ver 3.0 , ADD "qsub" part at -func
+#    2016/11/28  ver 3.0 , ADD comment at case "convert_eps"
+#    2017/04/21  ver 3.0 , ADD "check file" at -func
+#    2017/09/29  ver 3.1 , ADD "open & write in Fortran" at -func
+#                          ADD check file name, a new file name with "-" start is not allowed. e.g. -fkd
+#    2018/03/12  ver 3.1 , MODIFY case "convert-eps2png" to input files from command line
+#    2018/03/20  ver 3.2 , ADD case "nco_command-files"
+#    2018/03/30  ver 3.3 , ADD case "convert-png2mp4"
+#    2018/04/04  ver 3.4 , ADD case "cesm-monthly2monthly"
+#                          REWRITE case "cesm-monthly2annual"
+#    2018/04/23  ver 3.5 , MODIFY case "nco_command-files" to merge all files
+#    2018/05/01  ver 3.6 , MODIFY case "nco_command-files" to allow multiple NCO commands
+#    2018/07/09  ver 3.7 , ADD case "cesm-monthly2series"
+#    2018/07/22  ver 3.8 , ADD case "cesm-monthly2seasonal"
+#    2018/07/23  ver 3.8 , MODIFY case "cesm-monthly2monthly", including seasonal mean
+#    2018/07/27  ver 3.9 , REWRITE case "nco_command-files"
+#    2018/07/31  ver 4.0 , ADD case "exe-files-strings"
+#    2018/09/28  ver 4.1 , MODIFY case "cesm-monthly2*"
+#    2018/10/09  ver 4.2 , ADD cases e3sm-monthly2climo, e3sm-diag-package-login_node
+#    2018/10/11  ver 4.3 , ADD cases e3sm-diag-package
+#    2018/10/20  ver 4.4 , REWRITE cases cesm-monthly2seasonal
+#    2018/10/30  ver 4.4 , slightly modified
+#    2018/11/06  ver 4.5 , modified cesm-monthly2seasonal
+#    2018/11/19  ver 4.6 , ADD case e3sm-scm-reinitial_run & e3sm-scm-reinitial_getsteps
+#    2018/11/21  ver 4.7 , ADD case cesm-restart-run & cesm-branch-run
+#    2018/11/23  ver 4.8 , ADD case cesm-output2series 
+#    2018/11/27  ver 4.9 , ADD case cesm-monthly2climo, combine all cesm-monthly2* cases
+#    2018/11/27  ver 5.0 , ADD case cesm-backup-rundir
+#    2018/12/24  ver 5.1 , ADD case png2html-ignorant_cesm & png2html-amwg
+#    2018/12/28  ver 5.2 , ADD type html in the case png2html-ignorant_cesm
+#    2018/12/28  ver 5.2 , ADD xy_zonal in png2html-ignorant_cesm
+#    2019/01/31  ver 5.3 , Update png2html-ignorant_cesm
+#                          ADD ncl_exe-command_line
+#
+#  Author:
+#    Yi-Hsuan Chen, CLaSP, U of Michigan
+#    yihsuan@umich.edu
+#===================================
+
+#homepath="/home/yihsuan/"                      # @ flux, UMich
+homepath="/home/yihsuan/Downloads/yihsuan/"    # @ chromebook
+#homepath="/glade/u/home/yihsuan/"              # @ Cheyenne, NCAR
+#homepath="/global/homes/y/yihsuan/"		# @ Edison, NERSC
+
+homepath_work="$homepath/script/shell/application/create/"
+
+cases=(\
+       bash-parameters \
+       cesm-restart-run \
+       cesm-branch-run \
+       cesm-backup-rundir \
+       cesm-monthly2annual \
+       cesm-monthly2climo \
+       cesm-monthly2climo_old \
+       cesm-monthly2monthly \
+       cesm-monthly2seasonal \
+       cesm-monthly2series \
+       cesm-output2series \
+       convert-eps2png \
+       convert-png2mp4 \
+       e3sm-diag-package \
+       e3sm-diag-package-login_node \
+       e3sm-monthly2climo \
+       e3sm-scm-reinitial_run \
+       e3sm-scm-reinitial_getsteps \
+       exe-files-strings \
+       html-create \
+       list-files-command \
+       list-files-dir \
+       ncdiff-2files \
+       ncks-files \
+       ncks-append-files \
+       nco_command-files \
+       nco_command-files-merge \
+       nc-change-atts \
+       ncl_exe-command_line \
+       png2html-ignorant_cesm \
+       png2html-amwg \
+       )
+
+bash_usage="${homepath_work}/sh_crt.sh.usage"
+bash_func="${homepath_work}/sh_crt.sh.func"
+usage="(-c OR -case ${cases[@]}) (-d OR -dir dir1) (-f OR -file file1) (-h OR -help) (-a OR -add file1.sh case_name) (-func) ooo.sh"
+
+ncks_command_cesm="ncks -v \
+date,datesec,\
+hyai,hybi,hyam,hybm,P0,PS,\
+T,TS,TREFHT,TMQ,Q,U,V,OMEGA,PRECT,PRECC,PRECL,RELHUM,U10,\
+FLUT,FLUTC,FLDS,FLDSC,FLNS,FLNSC,LWCF,QRL,\
+FSNTOA,FSNTOAC,FSDS,FSDSC,FSNS,FSNSC,SWCF,QRS,\
+CLDLIQ,CLDICE,CLOUD,CLDTOT,CLDHGH,CLDMED,CLDLOW,TGCLDLWP,TGCLDIWP,\
+LHFLX,SHFLX,ICEFRAC" # common vars in CESM
+
+cat > $bash_usage << EOF
+
+*********************************
+*** Create bash sample script ***
+*********************************
+
+Usage: > sh sh_crt.sh (-a file1.sh case_name) 			ooo.sh
+       > sh sh_crt.sh (-d dir1) (-c list-files-dir) 		ooo.sh
+       > sh sh_crt.sh (-f file1 file2) (-c ncdiff-2files) 	ooo.sh
+       > sh sh_crt.sh (-d dir1) (-c ncks-files) 		ooo.sh
+       > sh sh_crt.sh (-d dir1) (-c nc-change-atts) 		ooo.sh
+
+Usage: > sh sh_crt.sh $usage
+
+OPTIONS:
+
+  -a OR -add     file1.sh case_name	:  Read input sample bash script and rewrite it to another form used in sh_crt.sh
+
+  -d OR -dir     directory              :  path of directory
+ 
+  -func					:  show commonly-used bash script code
+
+  -c OR -case    casename               :  case name
+                                           (${cases[@]})
+					
+					   ------------------
+					   -- shell script --
+					   ------------------
+
+					   ***[bash-parameters]		: create a bash script containing reading parameters from command line
+
+					   ***[exe-files-strings]	: execute each file with a varying string
+
+					   ***[list-files-command]	: list files from command line
+
+					   ***[list-files-dir]		: list files under datadir
+
+					   ----------
+					   -- CESM --
+					   ----------
+
+					   ***[cesm-backup-rundir]	: copy RUNDIR to another folder as a backup
+
+					   ***[cesm-branch-run]		: create a CESM branch run script
+
+					   ***[cesm-restart-run]	: create a CESM restart run script
+
+					   ***[cesm-monthly2climo]	: create CESM climatological series,month,season,annual mean of given CESM monthly outputs
+
+					   ***[cesm-output2series]	: Create CESM time series of user-selected variables
+
+					   ***OUTDATED [cesm-monthly2climo_old]	: create CESM climatological month,season,annual mean of given CESM monthly outputs
+
+					   ***OUTDATED [cesm-monthly2annual]	: create CESM multi-years annual mean from given CESM monthly outputs
+
+					   ***OUTDATED [cesm-monthly2monthly]	: create CESM climatological monthly mean from given CESM monthly outputs
+
+					   ***OUTDATED [cesm-monthly2seasonal]	: create CESM climatological seasonal mean from given CESM monthly outputs, i.e. DJF,MAM,JJA,SON
+
+					   ***OUTDATED [cesm-monthly2series]	: Create CESM monthly series of user-selected variables
+
+					   ----------
+					   -- E3SM --
+					   ----------
+
+					   ***[e3sm-scm-reinitial_run]		: run E3SM-SCM with reinitialzation at every given steps and run for a certain time steps
+					   
+					   ***[e3sm-scm-reinitial_getsteps]	: get time steps from E3SM-SCM reinitialization runs			
+
+					   ***[e3sm-monthly2climo]		: create E3SM climatological month,season,annual mean of given E3SM monthly outputs 
+
+					   ***[e3sm-diag-package]		: use E3SM diagnostic package to plot a bunch of figures via batch system
+
+					   ***[e3sm-diag-package-login_node]	: use E3SM diagnostic package to plot a bunch of figures via command line
+
+					   ----------
+					   -- HTML --
+					   ----------
+
+					   ***[html-create]		: create a simple HTML file
+
+                                           ***[png2html-ignorant_cesm]	: create a html that contains png files from ignorant CESM plots
+                        
+                                           ***[png2html-amwg]		: create a html that contain png files from AMWG package
+
+					   ----------------------
+					   -- netCDF operation --
+					   ----------------------
+
+					   ***[ncdiff-2files]		: ncdiff two files
+
+					   ***[nco_command-files]	: use NCO command (e.g. ncks) to files that are given throught command line
+
+					   ***[nco_command-files-merge]	: use NCO command (e.g. ncks) to files that are given throught command line and merge all of them
+
+					   ***[ncks-append-files]	: use ncks command to append several .nc file into a new file
+
+					   OUTDATED ***[nc-change-atts]: change netCDF file attributes for selected files
+
+					   OUTDATED ***[ncks-files]: list files under datadir, and use ncks command
+
+					   -----------
+					   -- NCL --
+					   -----------
+
+					   ***[ncl_exe-command_line]	: create commands to execute NCL files with reading inputs from command lines
+
+					   -----------
+					   -- Other --
+					   -----------
+
+					   ***[convert-eps2png]	: convert .eps file to .png with user-given dpi
+					   
+					   ***[convert-png2mp4]	: convert a series of PNG files in folders to a MP4 file 
+
+EOF
+
+cat > $bash_func << EOF
+
+=========================
+=== Bash useful tools ===
+=========================
+
+********
+ array
+********
+
+  ### declare arrays and their position ###
+  > var=(aa bb cc)
+  > echo var[0]
+  aa
+  > echo var[1]
+  bb
+  
+  #### retract array size ###
+  > var=(aa bb cc)
+  > echo \${#var[@]}	# get array size
+  3
+
+*******
+ file
+*******
+
+  ### get line number of file ###
+  lines=\`wc -l file | cut -d ' ' -f 1\`
+
+  ### get specific line ###
+  line1=\`cat file | sed -n 1p\`
+
+**********
+ replace
+**********
+
+  ### replace specific word, e.g. change "aaa" to "bbb" ###
+  > sed -i 's/aaa/bbb/g' file
+  > echo aaabbbccc | sed 's/aaa/bbb/g'
+
+  ### replace "\" to "\\\" ###
+  > echo “a\b” | sed 's,\\\\,\\\\\\\\,g' 
+  > sed -i 's,\\\\,\\\\\\\\,g' test1.ncl
+  a\\b
+
+  ### replace "/" to "\/" ###
+  > echo “/nuwa_cluster/home/ignorant” | sed 's,/,\\\/,g'
+  \/nuwa_cluster\/home\/ignorant
+
+  ### replcae "/" to "\/" in shell script ###
+  line1=\`echo \$f90_path | sed 's,/,\\\\\\/,g'\`
+  sed -i "s/f90_path=.*/f90_path=\"\${line1}\"/g" y0-get.sh
+
+  ### replace “ “ to “\ “ in shell script ###
+  pp1="> grepdir.sh [search_word] [normal options of grep] [directories]"
+  pp="echo \$pp1 | sed 's/ /\\\\\ /g'"
+
+*********
+ string
+*********
+
+  ### cut string ###
+  > ex=abcdefg
+  > echo \${ex:0:3}	# start from 0, cut 3 characters
+  abc
+  > echo \${ex:6:1}
+  g
+  
+  ### show string length ###
+  > ex=abcdefg
+  > echo \${\#ex}		# get character number of string
+  7
+  
+  ### delete string ###
+  > ex=foodforthought.jpg
+  > echo \${ex##.*fo}	# delete all left character of “fo”
+  rought.jpg
+  
+  > echo \${ex#*o}	# delete all left character of first “fo”
+  odforthought.jpg
+  #  note “#” is to delete left character, while “%” is to delete right character 
+
+**********
+ format
+**********
+  i=5
+  ii=\`printf "%2.2i" \$i\`
+  > ii=05
+
+*****************
+ qsub at UM flux
+*****************
+#!/bin/bash 
+#PBS -S /bin/bash
+#PBS -N test111
+#PBS -l nodes=1:ppn=1
+#PBS -l walltime=6:00:00
+#PBS -l pmem=4000mb
+#PBS -l qos=flux
+##PBS -A climate_flux
+#PBS -A xianglei_flux
+#PBS -q flux
+#PBS -V
+#PBS -j oe
+#PBS -m abe
+
+************
+ check file 
+************
+if [ -f \$file00 ]; then
+  echo "[\$file00] is already exist!"
+  read -p "Do you want to overwrite it? (y/n) " choice
+
+  if [ \$choice -a \$choice == "y" ]; then
+    rm -f \$file00 && echo "Done. remove [\$file00]" || exit 203
+  else
+    echo "[\$file00] can not overwrite!"
+    echo "program stop"
+    exit 201
+  fi
+fi
+
+***********************************
+ open and write a file in Fortran
+***********************************
+open(11,file='`pwd`/', &
+        form='formatted',position='append')
+  write(11,*)
+  do k=1,pver
+    write(11,*)
+  end do
+close(11)
+
+
+EOF
+
+#=================
+#  program start
+#=================
+
+# get total number of parameters
+# set meaingful indexes in command line 
+pram_num=$#
+pram_idx=(-c -case -d -dir -s -suffix -a -add -f -file)
+
+## res_available=(cn xy)
+pram_idx_num=${#pram_idx[@]}
+
+#check whether bash script name is given
+if [ -z $1 ]; then
+  echo "Warning: bash sciprt name is not define!"
+  echo "program stop"
+  echo "Usage: > sh sh_crt.sh $usage"
+  #cat $bash_usage || eeit 1
+  #rm -f $bash_usage
+  exit 101
+fi
+
+#----------------------------------
+# read parameters from command line
+#----------------------------------
+
+k=1
+for ((i=1; i<=$pram_num; i=i+1))
+do
+  # read every parameters
+  pram[i]=$1
+  shift
+
+  # read position of indexes
+  for ((j=0; j<=$pram_idx_num-1; j=j+1))
+  do
+    pram[$i]=`echo ${pram[$i]} | sed "s/ /\\\\ /g"`
+
+    if [ "${pram[$i]}" == ${pram_idx[$j]} ]; then
+      idx_pos[k]=$i
+      k=$(($k+1))
+    fi
+  done
+done
+
+#--------------------------
+# read indexes parameters
+#--------------------------
+
+# bash script name
+bash_name=${pram[$pram_num]}
+
+if [ $bash_name == "-h" ] || [ $bash_name == "-help" ] ; then
+  cat $bash_usage || exit 1
+  exit 0
+
+elif [ $bash_name == "-func" ]; then
+  cat $bash_func || exit 1
+  exit 0
+
+fi
+
+# do not allow script name started with "-" because it is hard to delete, e.g -r.bash
+if [ ${bash_name:0:1} == "-" ]; then
+  echo ""
+  echo "WARNING: bash script name [$bash_name] start with [-]"
+  echo "please re-enter the script name"
+  echo "program stop"
+  exit 0
+  echo ""
+fi
+
+if [ -f $bash_name ]; then
+  echo "[$bash_name] is already exist!"
+  read -p "Do you want to overwrite it? (y/n) " choice
+
+  if [ $choice -a $choice == "y" ]; then
+    rm -f $bash_name && echo "Done. remove [$bash_name]" || exit 203
+  else
+    echo "[$bash_name] can not overwrite!"
+    echo "program stop"
+    exit 201
+  fi
+fi
+
+# add bash script name index to extra index position
+nn=${#idx_pos[@]}
+idx_pos[$nn+1]=$pram_num
+idx_num=${#idx_pos[@]}
+
+# divide parameters to used varibles 
+for ((i=1; i<$idx_num; i=i+1))
+do
+
+   n1=${idx_pos[$i]}
+   n2=${idx_pos[$i+1]}
+   nn=$(($n2-$n1-1))
+
+   idx_name=${pram[$n1]}
+   kk=0
+
+   if [ $nn -ge 1 ]; then
+
+     if [ $idx_name == "-c" ] || [ $idx_name == "-case" ]; then
+       for ((j=$n1+1; j<$n2; j=j+1))
+       do
+         casename=${pram[$j]}
+       done
+
+     elif [ $idx_name == "-d" ] || [ $idx_name == "-dir" ] ; then
+       for ((j=$n1+1; j<$n2; j=j+1))
+       do
+         indir[kk]=${pram[$j]}
+         kk=$(($kk+1))
+       done
+
+     elif [ $idx_name == "-f" ] || [ $idx_name == "-file" ] ; then
+       for ((j=$n1+1; j<$n2; j=j+1))
+       do
+         infile[kk]=${pram[$j]}
+         kk=$(($kk+1))
+       done
+
+     elif [ $idx_name == "-s" ] || [ $idx_name == "-suffix" ] ; then
+       for ((j=$n1+1; j<$n2; j=j+1))
+       do
+         suffix[kk]=${pram[$j]}
+         suffixnames="${suffixnames}${suffix[kk]},"
+         kk=$(($kk+1))
+       done
+
+     elif [ $idx_name == "-a" ] || [ $idx_name == "-add" ]; then
+       for ((j=$n1+1; j<$n2; j=j+1))
+       do
+         option_add="T"
+         add_parameter[kk]=${pram[$j]}
+         kk=$(($kk+1))
+       done
+
+     fi
+   fi
+done
+
+#==============================================
+# create sample scripts based on input NCL file
+#==============================================
+
+temp=`date +%Y%m%d%H%M%S`
+ftemp="./ggmmiirr.$temp"
+ftemp01="$ftemp.temp01"
+ftemp02="$ftemp.temp02"
+ftemp03="$ftemp.temp03"
+
+if [ $option_add -a $option_add == "T" ]; then
+
+  sample_file=${add_parameter[0]}
+  sample_case=${add_parameter[1]}
+
+  # if sample_file does not exist
+  if [ ! $sample_file ] || [ ! -f $sample_file ]; then
+    echo ""
+    echo "ERROR: file [$sample_file] does not exist!"
+    echo "Usage: bash_case.sh -a (file name) (case name) output.sh"
+    echo "program stop"
+    exit 1
+
+  # if casename does not exist
+  elif [ ! $sample_case ]; then
+    echo ""
+    echo "ERROR: case name [$sample_case] is not given!"
+    echo "Usage: bash_case.sh -a (file name) (case name) output.sh"
+    echo "program stop"
+    exit 1
+
+  fi
+
+  # write check part
+  cat >> $ftemp01 << EOF11
+#*** check case == "$sample_case" ***
+elif [ \$casename_work -a \$casename_work == "$sample_case" ]; then
+
+#*** case: "$sample_case" start ***
+elif [ \$casename_work -a \$casename_work == "$sample_case" ]; then
+cat >> \$bash_name << EOF
+
+#**********************
+#  Description:
+#
+#**********************
+
+EOF11
+
+  # create template file
+  cat $sample_file >> $ftemp02
+
+  # replace '\' to '\\'
+  sed -i 's,\\,\\\\,g' $ftemp02 || exit 3
+
+  # replace '`' to '\`'
+  sed -i "s/\`/\\\\\`/g" $ftemp02 || exit 3
+
+  # replace '$' to '\$'
+  sed -i 's,\$,\\\$,g' $ftemp02 || exit 3
+
+  # remove work files
+  cat $ftemp02 >> $ftemp01  || exit 5
+  echo "EOF" >> $ftemp01 || exit 5
+  echo "#*** case: "$sample_case" end ***" >> $ftemp01 || exit 5
+
+  # remove work files
+  cp -i $ftemp01 $bash_name || exit 5
+  rm $ftemp.*
+
+  #*********************
+  # echo information
+  #*********************
+  echo ' '
+  echo '----------------------------'
+  echo 'Transform Sample bash script to sh_crt.sh'
+  echo ' '
+  echo "out file name is [$bash_name]"
+  echo ' '
+  echo "read file     is [$sample_file]"
+  echo "out case name is [$sample_case]"
+  echo '----------------------------'
+  echo ' '
+
+  exit 0
+
+# end if of option_add
+fi
+
+#=====================================================
+# create bash scripts based on user-given information
+#=====================================================
+
+#--------------------
+# check case name
+#--------------------
+num_case=${#cases[@]}
+casename_work=""
+
+# set casename_work
+for((i=0; i<$num_case; i=i+1))
+do
+  if [ $casename -a $casename == ${cases[$i]} ]; then
+    casename_work=$casename
+  fi
+done
+
+# check whether available case name
+if [ ! $casename_work ]; then
+  echo ""
+  echo "ERROR: unvalid case name [$casename]"
+  echo ""
+  echo "available case names :"
+    for ((i=0; i<$num_case; i=i+1))
+    do
+      echo "                       $(($i+1)), ${cases[$i]}"    
+    done
+  echo "set to default setup"
+  casename_work="default"
+  echo ""
+fi
+
+#*** check case == "list-files-dir" ***
+if [ $casename_work -a $casename_work == "list-files-dir" ]; then
+  dir01=${indir[0]}
+
+#*** check case == "ncks-files" ***
+elif [ $casename_work -a $casename_work == "ncks-files" ]; then
+  dir01=${indir[0]}
+  suffix01=${suffix[0]}
+
+#*** check case == "nc-change-atts" ***
+elif [ $casename_work -a $casename_work == "nc-change-atts" ]; then
+  dir01=${indir[0]}
+
+#*** check case == "ncdiff-2files" ***
+elif [ $casename_work -a $casename_work == "ncdiff-2files" ]; then
+  file01=${infile[0]}
+  file02=${infile[1]}
+
+#*** check case == "cesm-monthly2climo_old" ***
+elif [ $casename_work -a $casename_work == "cesm-monthly2climo_old" ]; then
+  dir01=${indir[0]}
+
+#*** check case == "convert-eps2png" ***
+elif [ $casename_work -a $casename_work == "convert-eps2png" ]; then
+  dir01=${indir[0]}
+
+#*** check case == "ncks-append-files" ***
+elif [ $casename_work -a $casename_work == "ncks-append-files" ]; then
+  dir01=${indir[0]}
+
+#*** check case == "cesm-monthly2annual" ***
+elif [ $casename_work -a $casename_work == "cesm-monthly2annual" ]; then
+  dir01=${indir[0]}
+
+#*** check case == "cesm-monthly2monthly" ***
+elif [ $casename_work -a $casename_work == "cesm-monthly2monthly" ]; then
+  aa=0
+
+#*** check case == "cesm-monthly2series" ***
+elif [ $casename_work -a $casename_work == "cesm-monthly2series" ]; then
+  aa=0
+
+#*** check case == "cesm-monthly2seasonal" ***
+elif [ $casename_work -a $casename_work == "cesm-monthly2seasonal" ]; then
+  aa=0
+
+#*** check case == "exe-files-strings" ***
+elif [ $casename_work -a $casename_work == "exe-files-strings" ]; then
+  aa=0
+
+#*** check case == "e3sm-monthly2climo" ***
+elif [ $casename_work -a $casename_work == "e3sm-monthly2climo" ]; then
+  aa=0
+
+#*** end of check case ***
+fi
+
+# check dir01
+if [ ! $dir01 ] || [ ! -d $dir01 ]; then
+  dir01="./"
+fi
+
+#--------------------
+# write bash script
+#--------------------
+
+#***************
+# script start
+#***************
+
+cat > $bash_name << EOF
+#!/bin/bash 
+#===================================
+#  Bourne-Again shell script at flux @ U of Michigan
+#
+#  Description:
+#
+#
+#  Usage:
+#
+#
+#  History:
+#
+#  Author:
+#    Yi-Hsuan Chen, CLaSP, U of Michigan
+#    yihsuan@umich.edu
+#===================================
+EOF
+
+#*************
+# script case
+#*************
+
+#*** case "default" start ***
+if [ $casename_work -a $casename_work == "default" ]; then
+cat >> $bash_name << EOF || exit 1
+
+###################
+# user setting
+###################
+
+# homepath
+homepath="$homepath"
+
+# wroking directory
+wrkdir="./"
+
+# temp variable
+temp=\`date +%Y%m%d%H%M%S\`
+
+##################
+# program start
+##################
+
+
+
+exit 0
+
+EOF
+#*** case "default" end ***
+
+#*** case "list-files-dir" start ***
+elif [ $casename_work -a $casename_work == "list-files-dir" ]; then
+cat >> $bash_name << EOF || exit 1
+
+# wroking directory
+wrkdir="./"
+
+# data directory
+datadir="$dir01"
+
+# file_head
+file_head=""
+#file_head="[0-1]"
+
+# out file name
+outname=""
+
+# start file index
+index_ss=1
+#index_ss=7
+
+##################
+# program start
+##################
+
+temp=\`date +%Y%m%d%H%M%S\`
+ftemp="\$wrkdir/mmggttss.\$temp"
+ftemp00=\$ftemp.temp00
+ftemp01=\$ftemp.temp01
+
+# check whether datadir exist
+if [ ! \$datadir ] || [ ! -d \$datadir ]; then
+  echo "ERROR: data dir [\$datadir] does not exist"
+  echo "rpgram stop"
+  exit 1
+fi
+
+# get files in datadir
+ls \$datadir/\${file_head}* > \$ftemp01 || exit 1
+cat \$ftemp00 | sed -n "\$index_ss,\$p" > \$ftemp01 || exit 1
+
+# check with user
+echo ""
+echo "  process files"
+echo "---------------------------"
+nl \$ftemp01
+echo "---------------------------"
+echo""
+read -p "Is is correct? (y/n)  " choice
+echo " "
+if [ ! \$choice ] || [ ! \$choice == "y" ]; then
+  echo "program stop"
+  exit 1
+fi
+
+# get file number
+num_files=\`wc -l \$ftemp01 | cut -d ' ' -f 1\`
+files=""
+
+# process each file
+for((i=1; i<=\$num_files; i=i+1))
+do
+  file1=\`cat \$ftemp01 | sed -n \$i'p'\`
+  echo \$i,\$file1
+  files="\$files \$file1"
+
+done
+
+echo \$files
+
+#rm \$ftemp*
+
+exit 0
+EOF
+#*** case "list-files-dir" end ***
+
+#*** case: "list-files-command" start ***
+elif [ $casename_work -a $casename_work == "list-files-command" ]; then
+cat >> $bash_name << EOF
+
+#*************************************************
+# Description:
+#   process files that input from command lines
+#*************************************************
+
+##################
+# program start
+##################
+
+# read input parameters from command line
+pram_num=\$#
+
+if [ \$pram_num -eq 0 ]; then
+  echo "No given file!"
+  echo "program stop"
+  exit 3
+else
+
+  for (( i=0; i<=\$pram_num; i=i+1  ))
+  do
+    infile[i]=\$1
+    shift
+  done
+fi
+
+# get total number of files
+num_infile=\$((\${#infile[@]}-1))
+
+# check with user
+echo "------------------------"
+echo "Change path of user-given NCL files"
+echo ""
+for ((i=0; i<\$num_infile; i=i+1))
+do
+  j=\$((\$i+1))
+  echo "  input files        : \$j/\$num_infile, [\${infile[\$i]}]"
+done
+echo "------------------------"
+read -p "Is is correct? (y/n)  " choice
+echo " "
+if [ ! \$choice ] || [ ! \$choice == "y" ]; then
+  echo "Cancel by user"
+  echo "program stop"
+  exit 5
+fi
+
+# process each file
+for((i=0; i<\$num_infile; i=i+1))
+do
+  file1=\${infile[\$i]}
+  echo \$i,\$file1
+done
+
+exit 0
+
+EOF
+#*** case: "list-files-command" end *** 
+
+#*** case "ncks-files" start ***
+elif [ $casename_work -a $casename_work == "ncks-files" ]; then
+cat >> $bash_name << EOF || exit 1
+
+# set lat,lon range (africa)
+lon_min="340.0"
+lon_max="55.0"
+
+lat_min="-40.0"
+lat_max="40.0"
+
+# set variables
+varvar=""
+#varvar="PRECC PRECL"
+
+# set time range
+time_idx="1"    # use Fortran index, i.e. start from 1
+#time_idx="1,5"  # select time index 1-5
+#time_idx="1,,4" # select every 4th index from 1
+
+##################
+# program start
+##################
+
+# read input parameters from command line
+pram_num=\$#
+
+if [ \$pram_num -eq 0 ]; then
+  echo "No given file!"
+  echo "program stop"
+  exit 3
+else
+
+  for (( i=0; i<=\$pram_num; i=i+1  ))
+  do
+    infile[i]=\$1
+    shift
+  done
+fi
+
+# get total number of files
+num_infile=\$((\${#infile[@]}-1))
+
+# check with user
+echo "------------------------"
+echo "Change path of user-given NCL files"
+echo ""
+for ((i=0; i<\$num_infile; i=i+1))
+do
+  j=\$((\$i+1))
+  echo "  input files        : \$j/\$num_infile, [\${infile[\$i]}]"
+done
+echo "------------------------"
+read -p "Is is correct? (y/n)  " choice
+echo " "
+if [ ! \$choice ] || [ ! \$choice == "y" ]; then
+  echo "Cancel by user"
+  echo "program stop"
+  exit 5
+fi
+
+# process each file
+for((i=0; i<\$num_infile; i=i+1))
+do
+  file1=\${infile[\$i]}
+  #echo \$i,\$file1
+
+  name1=\`echo \${file1##.*/} | cut -d '.' -f 1\`
+  #echo \$i,\$name1
+
+  name2="\$name1-africa.nc"
+  #echo \$i,\$name2
+
+  file2="\$wrkdir/\$name2"
+  #echo \$i,\$file2
+
+  #ncks -v \$varvar \$file1 \$file2 && \\
+  #ncks -d time,\$time_idx \$file1 \$file2 && \\
+  #ncks -d lon,\$lon_min,\$lon_max -d lat,\$lat_min,\$lat_max \$file1 \$file2 && \\
+  #  echo "Done. create \$i,\$file2" || exit 1
+
+done
+
+#rm \$ftemp*
+
+exit 0
+EOF
+#*** case "ncks-files" end ***
+
+#*** case: "nc-change-atts" start ***
+elif [ $casename_work -a $casename_work == "nc-change-atts" ]; then
+cat >> $bash_name << EOF
+
+# NOTE: this script can be used when the name appeared in amwg package is not the same as cesm case name
+
+# data dir
+datadir="$dir01"
+wrkdir="./"
+
+# working files and new attributes
+file_head="cesm111-F2000-control"  # work file head 
+new_att="\${file_head}"
+#new_att="cesm111-F2000-control"    # new attribute value
+
+##################
+# program start
+##################
+
+ftemp="\$wrkdir/yyiiqqpp.temp.\$temp"
+ftemp01=\$ftemp.01
+
+ls \$datadir/\$file_head*.nc > \$ftemp01
+
+# check with user
+echo ""
+echo "  process files"
+echo "---------------------------"
+nl \$ftemp01
+echo "---------------------------"
+echo""
+read -p "Is is correct? (y/n)  " choice
+echo " "
+if [ ! \$choice ] || [ ! \$choice == "y" ]; then
+  echo "program stop"
+  exit 1
+fi
+
+lines=\`wc -l \$ftemp01 | cut -d " " -f 1\`
+
+for ((i=1; i<=\$lines; i=i+1))
+do
+  file1=\`cat \$ftemp01 | sed -n "\$i"p\`
+
+  if [ \$file1 -a -f \$file1 ]; then 
+    ncatted -O -a title,global,o,c,\$new_att \$file1 \\
+      && echo "\$i/\$lines. Done. change attribute *titile* [\$file1]" || exit 1
+    ncatted -O -a \\case,global,o,c,\$new_att \$file1 \\
+      && echo "\$i/\$lines. Done. change attribute *case*  [\$file1]" || exit 1
+
+  else
+    echo "WARNING: file [\$file1] does not exist"
+  fi
+
+done
+
+rm \$ftemp*
+
+exit 0
+EOF
+#*** case: "nc-change-atts" end ***" 
+
+#*** case: "html-create" start ***
+elif [ $casename_work -a $casename_work == "html-create" ]; then
+cat >> $bash_name << EOF
+
+title="CESM v1.1.1 run - Yi-Hsuan Chen"  # title appeaing on the webpage
+
+number=11 # number index             
+casename="cesm111-F2000-lw_emis-unity-Ts_xiuchen-cesm111-F2000-control"
+file_link="graphics/case/cesm111-F2000-lw_emis/\$casename/index.html"   # path of hyper-link file
+name_link=\$casename
+#file_link="graphics/case/cesm111-F2000-lw_emis/cesm111-F2000-lw_emis-both_Sahara_Sahel-Ts_SB-cesm111-F2000-control/index.html"
+#name_link="cesm111-F2000-lw_emis-both_Sahara_Sahel-Ts_SB-cesm111-F2000-control"
+
+date=\`date +%a\\ %b\\ %d\\ %H:%M\\ %Y\`
+#echo \$date
+
+##################
+# program start
+##################
+ftemp="\$wrkdir/hhyyrrqq.temp.\$temp"
+
+cat > \$ftemp << EOF1
+<HTML>
+
+<b><br>
+Updated on \$date
+</b></font>
+</TABLE>
+<hr noshade size=3 size="100%">
+<font color=maroon size=+3><b>
+\$title<br>
+
+  <font color=red size=+3>\$number</font> <A HREF="\$file_link"><font size=+3>\$name_link</A><font size=+1> \$date</font><br>  
+
+  <br> 
+  <A HREF="graphics/case/cesm111-F2000-lw_emis/README.html"><font size=+3>README</A>
+
+  <!-- sldjflsdjflsjd -->
+EOF1
+
+cat \$ftemp && rm \$ftemp
+
+exit 0
+EOF
+#*** case: "html-create" end *** 
+
+#*** case: "bash-parameters" start ***
+elif [ $casename_work -a $casename_work == "bash-parameters" ]; then
+cat >> $bash_name << EOF
+
+# sample file and dir
+sample_file="\$homepath/.bashrc"
+sample_dir="\$homepath/script/bashrc"
+
+# usage
+pram_idx=(-shcrt -shrep -ncl)  # parameters in command line
+usage="(\${pram_idx[@]}) script_name"
+
+#===============
+# check part
+#===============
+
+if [ ! -f \$sample_file ]; then
+  echo "ERROR: file [\$smaple_file] does not exist!"
+  echo "program stop"
+  exit 1
+
+elif [ ! -d \$sample_dir ]; then 
+  echo "ERROR: dir [\$sample_dir] does not exist!"
+  echo "program stop"
+  exit 1
+fi
+
+#=================
+#  program start
+#=================
+
+# get total number of parameters
+# set meaingful indexes in command line 
+pram_num=\$#
+pram_idx_num=\${#pram_idx[@]}
+
+#check whether script name is given
+if [ -z \$1 ]; then
+  echo "Warning: sciprt name is not define!"
+  echo "program stop"
+  echo "Usage: > sh sh_replace.sh \$usage"
+  #cat \$bash_usage || eeit 1
+  #rm -f \$bash_usage
+  exit 101
+fi
+
+#----------------------------------
+# read parameters from command line
+#----------------------------------
+
+k=1
+for ((i=1; i<=\$pram_num; i=i+1))
+do
+  # read every parameters
+  pram[i]=\$1
+  shift
+
+  # read position of indexes
+  for ((j=0; j<=\$pram_idx_num-1; j=j+1))
+  do
+    pram[\$i]=\`echo \${pram[\$i]} | sed "s/ /\\\\\\\\ /g"\`
+
+    if [ "\${pram[\$i]}" == \${pram_idx[\$j]} ]; then
+      idx_pos[k]=\$i
+      k=\$((\$k+1))
+    fi
+  done
+done
+
+#--------------------------
+# read indexes parameters
+#--------------------------
+
+# script name
+scrp_name=\${pram[\$pram_num]}
+scrp_head=\${scrp_name:0:8}
+
+if [ ! -f \$scrp_name ]; then
+  echo "ERROR: [\$scrp_name] does not exist!"
+  echo "program stop"
+  exit 1
+fi
+
+# add bash script name index to extra index position
+nn=\${#idx_pos[@]}
+idx_pos[\$nn+1]=\$pram_num
+idx_num=\${#idx_pos[@]}
+
+option_shcrt="F"
+option_ncl="F"
+option_shrep="F"
+
+# divide parameters to used varibles 
+for ((i=1; i<\$idx_num; i=i+1))
+do
+
+   n1=\${idx_pos[\$i]}
+   n2=\${idx_pos[\$i+1]}
+   nn=\$((\$n2-\$n1-1))
+
+   idx_name=\${pram[\$n1]}
+   kk=0
+
+   if [ \$idx_name == "-shcrt" ]; then
+     option_shcrt="T"
+   elif [ \$idx_name == "-ncl" ]; then
+     option_ncl="T"
+   elif [ \$idx_name == "-shrep" ]; then
+     option_shrep="T"
+   fi
+
+   #if [ \$nn -ge 1 ]; then
+   #  if [ \$idx_name == "-c" ] || [ \$idx_name == "-case" ]; then
+   #    for ((j=\$n1+1; j<\$n2; j=j+1))
+   #    do
+   #      casename=\${pram[\$j]}
+   #    done
+   #  fi
+   #elif [ $idx_name == "-d" ] || [ $idx_name == "-dir" ] ; then
+   #   for ((j=$n1+1; j<$n2; j=j+1))
+   #   do
+   #     indir[kk]=${pram[$j]}
+   #     kk=$(($kk+1))
+   #   done
+   #fi
+done
+
+#======
+# case 
+#======
+
+if [ \$option_shcrt -a \$option_shcrt == "T" ]; then
+
+elif [ \$option_shcrt -a \$option_shcrt == "T" ]; then
+
+fi
+
+
+exit 0
+EOF
+#*** case: "bash-parameters" end *** 
+
+#*** case: "ncdiff-2files" start ***
+elif [ $casename_work -a $casename_work == "ncdiff-2files" ]; then
+cat >> $bash_name << EOF
+#
+yyyy=2000
+mm=02
+
+# file 1
+file1="$file01"
+#datadir1="/scratch/climate_flux/yihsuan/uu-unity-control/run"
+#file1="\$datadir1/uu-unity-control.cam.h0.\$yyyy-\$mm.nc"
+#datadir1=""
+#name1=""
+#file1="\$datadir1/\$name1"
+
+# file 2
+file2="$file02"
+#datadir2="/scratch/climate_flux/yihsuan/cesm111-F2000-lw_emis-unity-Ts_xiuchen/run"
+#file2="\$datadir2/cesm111-F2000-lw_emis-unity-Ts_xiuchen.cam.h0.\$yyyy-\$mm.nc"
+#datadir2=""
+#name2=""
+#file2="\$datadir2/\$name2"
+
+# set lat,lon range (africa)
+lon_min="340.0"
+lon_max="55.0"
+
+lat_min="-40.0"
+lat_max="40.0"
+
+# set variables
+#varvar=""
+varvar="PRECC,PRECL,FLDS,FLNT,FLNS,FLNTC"
+
+# set time range
+time_idx="1"    # use Fortran index, i.e. start from 1
+#time_idx="1,5"  # select time index 1-5
+#time_idx="1,,4" # select every 4th index from 1
+
+##################
+# program start
+##################
+
+ftemp="\$wrkdir/nnggllss.\$temp"
+ftemp01=\$ftemp.temp01.nc
+ftemp02=\$ftemp.temp02.nc
+fout="\$wrkdir/mmnniiff-diff-\$temp.nc"
+
+# check whether files exist
+if [ ! -f \$file1 ]; then
+  echo "ERROR: file [\$file1] does not exist"
+  echo "porgram stop"
+  exit 1
+
+elif [ ! -f \$file2 ]; then
+  echo "ERROR: file [\$file2] does not exist"
+  echo "porgram stop"
+  exit 1
+fi
+
+# write selected varaibles into other files
+ncks -v \$varvar \$file1 \$ftemp01 || exit 101
+ncks -v \$varvar \$file2 \$ftemp02 || exit 101
+
+# use ncdiff command
+ncdiff \$ftemp01 \$ftemp02 \$fout && \\
+  echo "Done. ncdiff [\$file1,\$file2] to [\$fout]" || 103
+
+  #ncks -d time,\$time_idx \$file1 \$file2 && \\
+  #ncks -d lon,\$lon_min,\$lon_max -d lat,\$lat_min,\$lat_max \$file1 \$file2 && \\
+  #  echo "Done. create \$i,\$file2" || exit 1
+
+rm \$ftemp*
+
+exit 0
+
+EOF
+#*** case: "ncdiff-2files" end *** 
+
+
+#*** case: "cesm-monthly2climo_old" start ***
+elif [ $casename_work -a $casename_work == "cesm-monthly2climo_old" ]; then
+cat >> $bash_name << EOF
+
+#**********************
+#  Description:
+#    compute climatologically-mean of month, seasonal, and annual field by given CESM monthly outputs
+#**********************
+
+###################
+# user setting
+###################
+
+# wroking directory
+wrkdir="./"
+
+# temp variable
+temp=\`date +%Y%m%d%H%M%S\`
+
+# casename
+#casename="uu-xiuchen-spectral"
+casename="ii-sahara"
+
+# data directory contain monthly CESM outputs
+datadir="../\$casename/run/"
+file_head="\$casename.cam.h0"
+
+# year start and end
+yy_start=2004
+yy_end=2013
+
+mm_start=1
+mm_end=12
+
+# new file head
+head_new="\${casename}_lw_spectral"
+
+# set variables
+option_ncks="T"
+#option_ncks="F"
+#varvar="FLSU01,FLSD01,FLSU02,FLSD02,FLSU03,FLSD03,FLSU04,FLSD04,FLSU05,FLSD05,FLSU06,FLSD06,FLSU07,FLSD07,FLSU08,FLSD08,FLSU09,FLSD09,FLSU10,FLSD10,FLSU11,FLSD11,FLSU12,FLSD12,FLSU13,FLSD13,FLSU14,FLSD14,FLSU15,FLSD15,FLSU16,FLSD16,FLDS,FLNS,FLNT"
+varvar="PRECC,PRECL"
+
+option_month="T"
+#option_month="F"
+option_season="T"
+#option_season="F"
+option_annual="T"
+#option_annual="F"
+
+#*** other ncks options,  search "insert other ncks options here" to add other options***
+# set lat,lon range (africa)
+#lon_min="340.0"
+#lon_max="55.0"
+#lat_min="-40.0"
+#lat_max="40.0"
+
+# set time range
+#time_idx="1"    # use Fortran index, i.e. start from 1
+#time_idx="1,5"  # select time index 1-5
+#time_idx="1,,4" # select every 4th index from 1
+
+##################
+# program start
+##################
+
+ftemp="\$wrkdir/xxooppee.\$temp"
+ftemp01=\$ftemp.temp01
+
+# check whether datadir exist
+if [ ! \$datadir ] || [ ! -d \$datadir ]; then
+  echo "ERROR: data dir [\$datadir] does not exist"
+  echo "rpgram stop"
+  exit 1
+fi
+
+#------------------------------
+# create monthly-average file
+#------------------------------
+
+if [ \$option_month -a \$option_month == "T" ]; then
+
+for ((m=\$mm_start; m<=\$mm_end; m=m+1))
+do
+  mm=\`printf "%2.2i" \$m\`
+  files2=""
+  file_new="\$wrkdir/\${head_new}_\${yy_start}-\${yy_end}_climo_\${mm}.nc"
+
+  for((yy=\$yy_start; yy<=\$yy_end; yy=yy+1))
+  do
+    file1="\$datadir/\$file_head.\$yy-\$mm.nc"  
+    file2="\$ftemp-\$yy-\$mm.nc"
+
+    if [ \$file1 -a -f \$file1 ]; then
+      if [ \$option_ncks -a \$option_ncks == "T" ]; then
+        # insert other ncks options here
+        ncks -v \$varvar \$file1 \$file2 && echo "Done. ncks [\$file1]" || exit 101
+        files2="\$files2 \$file2"
+      else
+        files2="\$files2 \$file1"
+      fi
+
+    else
+      echo "file [\$file1] does not exist!"
+      echo "program stop"
+      exit 101
+    fi
+  done
+
+  #echo \$files2
+  file_temp="\$ftemp-time_avg-\$mm-\$temp.nc"
+  ncrcat \$files2 \$file_temp || exit 201
+  ncra \$file_temp \$file_new && echo "Done. create multi-year mean monthly [\$file_new]" || exit 203
+
+  rm \$ftemp*
+done
+
+fi
+
+#------------------------------
+# create seasonal-average file
+#------------------------------
+
+if [ \$option_season -a \$option_season == "T" ]; then
+
+#*** DJF ***
+files=""
+file_new="\$wrkdir/\${head_new}_\${yy_start}-\${yy_end}_climo_DJF.nc"
+file_temp="\$ftemp-seasonal-DJF-\$temp.nc"
+for mm in 12 01 02 
+do
+  file1="\$wrkdir/\${head_new}_\${yy_start}-\${yy_end}_climo_\${mm}.nc"
+  if [ \$file1 -a -f \$file1 ]; then
+    files="\$files \$file1"
+  else
+    echo "file [\$file1] does not exist!"
+    echo "program stop"
+    exit 101
+  fi
+done
+ncrcat \$files \$file_temp || exit 201
+ncra \$file_temp \$file_new && echo "Done. create time-average [\$file_new]" || exit 203
+
+#*** MAM ***
+files=""
+file_new="\$wrkdir/\${head_new}_\${yy_start}-\${yy_end}_climo_MAM.nc"
+file_temp="\$ftemp-seasonal-MAM-\$temp.nc"
+for mm in 03 04 05
+do
+  file1="\$wrkdir/\${head_new}_\${yy_start}-\${yy_end}_climo_\${mm}.nc"
+  if [ \$file1 -a -f \$file1 ]; then
+    files="\$files \$file1"
+  else
+    echo "file [\$file1] does not exist!"
+    echo "program stop"
+    exit 101
+  fi
+done
+ncrcat \$files \$file_temp || exit 201
+ncra \$file_temp \$file_new && echo "Done. create time-average [\$file_new]" || exit 203
+
+#*** JJA ***
+files=""
+file_new="\$wrkdir/\${head_new}_\${yy_start}-\${yy_end}_climo_JJA.nc"
+file_temp="\$ftemp-seasonal-JJA-\$temp.nc"
+for mm in 06 07 08
+do
+  file1="\$wrkdir/\${head_new}_\${yy_start}-\${yy_end}_climo_\${mm}.nc"
+  if [ \$file1 -a -f \$file1 ]; then
+    files="\$files \$file1"
+  else
+    echo "file [\$file1] does not exist!"
+    echo "program stop"
+    exit 101
+  fi
+done
+ncrcat \$files \$file_temp || exit 201
+ncra \$file_temp \$file_new && echo "Done. create time-average [\$file_new]" || exit 203
+
+#*** SON ***
+files=""
+file_new="\$wrkdir/\${head_new}_\${yy_start}-\${yy_end}_climo_SON.nc"
+file_temp="\$ftemp-seasonal-SON-\$temp.nc"
+for mm in 09 10 11
+do
+  file1="\$wrkdir/\${head_new}_\${yy_start}-\${yy_end}_climo_\${mm}.nc"
+  if [ \$file1 -a -f \$file1 ]; then
+    files="\$files \$file1"
+  else
+    echo "file [\$file1] does not exist!"
+    echo "program stop"
+    exit 101
+  fi
+done
+ncrcat \$files \$file_temp || exit 201
+ncra \$file_temp \$file_new && echo "Done. create time-average [\$file_new]" || exit 203
+
+fi
+
+#------------------------------
+# create annual-average file
+#------------------------------
+
+if [ \$option_annual -a \$option_annual == "T" ]; then
+
+files=""
+file_new="\$wrkdir/\${head_new}_\${yy_start}-\${yy_end}_climo_ANN.nc"
+file_temp="\$ftemp-ANN-\$temp.nc"
+for ((m=1; m<=12; m=m+1))
+do
+  mm=\`printf "%2.2i" \$m\`
+  file1="\$wrkdir/\${head_new}_\${yy_start}-\${yy_end}_climo_\${mm}.nc"
+
+  if [ \$file1 -a -f \$file1 ]; then
+    files="\$files \$file1"
+  else
+    echo "file [\$file1] does not exist!"
+    echo "program stop"
+    exit 101
+  fi
+done
+
+ncrcat \$files \$file_temp || exit 201
+ncra \$file_temp \$file_new && echo "Done. create time-average [\$file_new]" || exit 203
+
+rm \$ftemp*
+
+fi
+
+exit 0
+
+EOF
+#*** case: "cesm-monthly2climo_old" end *** 
+
+#*** case: "convert-eps2png" start ***
+elif [ $casename_work -a $casename_work == "convert-eps2png" ]; then
+cat >> $bash_name << EOF
+
+#********************************************************
+# Description:
+#   convert .eps to .png with user set dpi (dot per inch)
+#
+#   make animated gif from several .png files
+#   > convert -delay 10 -loop 0 fig-cesm111-FC5-year2-ps_ts_pw_flnt-000201* zz-01.gif
+#
+#********************************************************
+
+# data directory
+wrkdir="./"
+
+# output file name start
+outfile_start=""
+
+# dpi
+dpi=300
+
+##################
+# program start
+##################
+
+# read input parameters from command line
+pram_num=\$#
+
+if [ \$pram_num -eq 0 ]; then
+  echo "No given file!"
+  echo "program stop"
+  exit 3
+else
+
+  for (( i=0; i<=\$pram_num; i=i+1  ))
+  do
+    infile[i]=\$1
+    shift
+  done
+fi
+
+# get total number of files
+num_infile=\$((\${#infile[@]}-1))
+
+# check with user
+echo "------------------------"
+echo "Process files"
+echo ""
+for ((i=0; i<\$num_infile; i=i+1))
+do
+  j=\$((\$i+1))
+  echo "  input files        : \$j/\$num_infile, [\${outfile_start}\${infile[\$i]}]"
+done
+echo "------------------------"
+read -p "Is is correct? (y/n)  " choice
+echo " "
+if [ ! \$choice ] || [ ! \$choice == "y" ]; then
+  echo "Cancel by user"
+  echo "program stop"
+  exit 5
+fi
+
+# process each file
+for((i=0; i<\$num_infile; i=i+1))
+do
+  file1=\${infile[\$i]}
+  #echo \$i,\$file1
+
+  name1=\`echo \${file1##.*/} | cut -d '.' -f 1\`
+  #echo \$i,\$name1
+
+  name2="\${outfile_start}\${name1}.png"
+  #echo \$i,\$name2
+
+  file2="\$wrkdir/\$name2"
+  #echo \$i,\$file2
+
+  if [ \$file1 ] && [ -f \$file1 ]; then
+
+    convert -density \$dpi \$file1 \$file2 && \\
+      echo "Done. create [\$file2]" || exit 5
+  else
+    echo "ERROR: file [\$file1] does not exist!"
+    exit 9
+  fi
+
+done
+
+exit 0
+
+
+EOF
+#*** case: "convert-eps2png" end *** 
+
+#*** case: "ncks-append-files" start ***
+elif [ $casename_work -a $casename_work == "ncks-append-files" ]; then
+cat >> $bash_name << EOF
+
+#********************************************************
+# Description:
+#   use ncks command to select area,variables of several .nc files
+#   then append all of them to a new file
+#********************************************************
+
+# process files
+datadir="$dir01"
+#filename="cesm111-F2000-lw_emis-both_Sahara_Sahel-Ts_xiuchen"
+filename="cesm111-F2000-lw_emis-unity-Ts_xiuchen"
+#files=(\\ 
+#        \$datadir/\${filename}_ANN_climo.nc \\
+#        \$datadir/\${filename}_lwspectral_ANN_climo.nc \\
+#      )
+#files=(./nc1 ./nc2 ./nc3)
+new_file="\$wrkdir/\${filename}_ANN_climo-africa.nc"
+
+# set lat,lon range (africa)
+lon_min="340.0"
+lon_max="55.0"
+
+lat_min="-40.0"
+lat_max="40.0"
+
+# set variables
+varvar=""
+#varvar="PRECC PRECL"
+
+# set time range
+time_idx="1"    # use Fortran index, i.e. start from 1
+#time_idx="1,5"  # select time index 1-5
+#time_idx="1,,4" # select every 4th index from 1
+
+##################
+# program start
+##################
+
+ftemp="\$wrkdir/nnggllss.\$temp"
+ftemp01="\${ftemp}.temp01.nc"
+ftemp02="\${ftemp}.temp02.nc"
+
+num_files=\${#files[@]}
+
+# check file exist
+for((i=0; i<\$num_files; i=i+1))
+do
+  file1=\${files[\$i]}
+  if [ ! \$file1 ] || [ ! -f \$file1 ]; then
+    echo "ERROR: file [\$file1] does not exist"
+    echo "rpgram stop"
+    exit 1
+  fi
+done
+
+# check with user
+echo "------------"
+echo "process files"
+echo ""
+  for ((i=0; i<\$num_files; i=i+1))
+  do
+    j=\$((\$i+1))
+    echo "  \$j/\$num_files, [\${files[\$i]}]"  
+  done
+
+echo "------------------------"
+read -p "Is is correct? (y/n)  " choice
+echo " "
+if [ ! \$choice ] || [ ! \$choice == "y" ]; then
+  echo "The setup is incorrect. please try again"
+  echo "program stop"
+  exit 5
+fi
+
+# process files
+for((i=0; i<\$num_files; i=i+1))
+do
+  file1=\${files[\$i]}
+  filetemp0="\${ftemp}.temp0.nc"
+  filetemp="\${ftemp}.temp\${i}.nc"
+
+  # get selected fields 
+  #ncks -v \$varvar \$file1 \$file2 && \\
+  #ncks -d time,\$time_idx \$file1 \$file2 && \\
+  ncks -d lon,\$lon_min,\$lon_max -d lat,\$lat_min,\$lat_max \$file1 \$filetemp && \\
+    echo "Done. process [\$i,\$file1]" || exit 1
+
+  # append file
+  ncks -A \$filetemp \$filetemp0 && \\
+    echo "Done. append [\$i,\$file1]" || exit 3
+done
+
+# create final file
+echo ""
+cp \$filetemp0 \$new_file && \\
+  echo "Done. create [\$new_file]" || exit 7
+
+rm \${ftemp}*
+   
+exit 0
+
+
+EOF
+
+#*** case: "cesm-monthly2annual" start ***
+elif [ $casename_work -a $casename_work == "cesm-monthly2annual" ]; then
+cat >> $bash_name << EOF
+
+#**********************************************************
+# Description:
+#   compute annueal mean field of given CESM monthly files, 
+#   and append multiple annual-mean files into a final file
+#**********************************************************
+
+casenames=(\\
+           "" \\
+           )
+
+server="flux"
+server="Cheyenne"
+
+# start and end years
+yyyy_start=4
+yyyy_end=13
+
+filehead_start="yy-"
+
+###########################
+# program initialization
+###########################
+
+ncase=\${#casenames[@]}
+
+for ((cc=0; cc<\$ncase; cc=cc+1))
+do
+  casename=\${casenames[\$cc]}
+  cc_plus=\$((\$cc+1))
+
+echo "--------------------------------"
+echo \$cc_plus/\$ncase, [\$casename]
+echo "--------------------------------"
+
+# check server
+if [ \$server -a \$server == "Cheyenne" ]; then
+  # cesm datadir @ Cheyenne
+  datadir="/glade/scratch/yihsuan/archive/\$casename/atm/hist"
+elif [ \$server -a \$server == "flux" ]; then
+  # cesm datadir @ flux
+  datadir="/scratch/climate_flux/yihsuan/\$casename/run/"
+else
+  echo "ERROR: server [\$server] is not supported"
+  echo "program stop"
+  exit 1
+fi
+
+# input file_head
+file_head="\$casename.cam.h0"
+
+yy_start_string=\`printf %2.2i \$yyyy_start\`
+yy_end_string=\`printf %2.2i \$yyyy_end\`
+
+# wroking directory
+wrkdir="./"
+
+# final file containing annual mean of input files. E.g. the annual mean of 10 years in a netCDF file.
+annual_head="\${filehead_start}\${file_head}"
+file_annual=\$wrkdir/\$annual_head."yy"\${yy_start_string}_\${yy_end_string}-climo_annual.nc
+file_mean=\$wrkdir/\$annual_head."yy"\${yy_start_string}_\${yy_end_string}-climo_mean.nc
+
+##################
+# program start
+##################
+
+# temp variable
+temp=\`date +%Y%m%d%H%M%S\`
+
+# check whether datadir exist
+if [ ! \$datadir ] || [ ! -d \$datadir ]; then
+  echo "ERROR: data dir [\$datadir] does not exist"
+  echo "rpgram stop"
+  exit 1
+fi
+
+ file_append=""
+
+# process each file
+for ((yy1=\$yyyy_start; yy1<=\$yyyy_end; yy1=yy1+1))
+do
+  yy=\`printf "%4.4i" \$yy1\`
+
+  # list monthly files
+  files_work=\`ls \$datadir/"\$file_head"."\$yy"*\`
+  echo "compute annual mean \$yy files..."
+  echo "[\$files_work]"
+
+  # set name of temp annual-mean file
+  file_temp="\$wrkdir/\$file_head-\$yy.nc"
+  
+  # check files
+  file1=\`echo \$files_work | cut -d ' ' -f 1 | sed 's,/,\\\\/,g'\`
+  echo ""
+  #echo \$file1
+
+  if [ ! \$file1 ]; then
+    echo "ERROR: no such files [\$datadir/"\$file_head"."\$yy"*]"
+    exit 99
+  else
+    # compute annual mean
+    ncra \$files_work \$file_temp && echo "Done. \$yy" || exit 101
+    file_append="\$file_append \$file_temp"
+  fi
+  echo ""
+
+done
+
+# append files
+ncrcat -A \$file_append \$file_annual && echo "Done. create [\$file_annual] by appending [\$file_append]" || exit 301
+
+ncra \$file_annual \$file_mean && echo "Done. create [\$file_mean] by average [\$file_annual]" || exit 301
+
+# remove working files
+rm \$file_append
+
+done # done of ncase
+
+exit 0
+EOF
+#*** case: cesm-monthly2annual end ***
+
+#*** case: "nco_command-files-merge" start ***
+elif [ $casename_work -a $casename_work == "nco_command-files-merge" ]; then
+cat >> $bash_name << EOF
+
+#*************************************************
+# Description:
+#   Apply NCO command for each file that is inputed from command lines
+#*************************************************
+
+nco_commands=("ncks -v TS,FLUT,FLDS,FSNTOA" \\
+              "ncks -v hyai,hybi,hyam,hybm,PS,P0" \\
+             )
+
+file_out_start="yy-cut"
+
+option_merge="T"    		# merge all files into a single file
+#filename_merge="\`pwd\`/cc.nc"	# set filename of the merge file
+
+string_index=".all"
+string_merge="cam.h0"		# left of the {string_merge} would keep, so the filename of the merge file is xxx{string_merge}\${string_index}.nc
+
+wrkdir="./"
+
+if [ ! \$file_out_start ]; then
+  temp=\`date +%Y%m%d%H%M%S\`
+  wrkdir=\`pwd\`
+  file_out_start=\$wrkdir/\$temp
+fi
+
+
+##################
+# program start
+##################
+
+temp=\`date +%Y%m%d%H%M%S\`
+ftemp=\$wrkdir/\$temp
+
+# read input parameters from command line
+pram_num=\$#
+
+if [ \$pram_num -eq 0 ]; then
+  echo "No given file!"
+  echo "program stop"
+  exit 3
+else
+
+  for (( i=0; i<=\$pram_num; i=i+1  ))
+  do
+    infile[i]=\$1
+    shift
+  done
+fi
+
+# get total number of files
+num_infile=\$((\${#infile[@]}-1))
+
+# check with user
+echo "------------------------"
+echo "Apply NCO command on each file"
+echo ""
+echo "  NCO command: [\${nco_command}]"
+echo ""
+for ((i=0; i<\$num_infile; i=i+1))
+do
+  j=\$((\$i+1))
+  file1=\${infile[\$i]}
+  name1=\`echo \${file1##*/}\`
+  file2=\${file_out_start}-\${name1}
+  echo "  input/output files        : \$j/\$num_infile, [\${infile[\$i]}] , [\$file2]"
+done
+echo "------------------------"
+read -p "Is is correct? (y/n)  " choice
+echo " "
+if [ ! \$choice ] || [ ! \$choice == "y" ]; then
+  echo "Cancel by user"
+  echo "program stop"
+  exit 5
+fi
+
+#==============
+# execute NCO
+#==============
+file2_all=""
+num_nco=\${#nco_commands[@]}
+
+# process each file
+for((i=0; i<\$num_infile; i=i+1))
+do
+  file1=\${infile[\$i]}
+  name1=\`echo \${file1##*/}\`
+  file2=\${file_out_start}-\${name1}
+  #echo \$i,\$file1
+  #echo \$i,\$file2
+
+  # process the first NCO command
+  j=0
+  nco_command=\${nco_commands[\$j]}
+  jj=\`printf "%2.2i" \$j\`
+  file2_meta00=\${ftemp}_nco\${jj}_\${file2}
+
+  \$nco_command \$file1 \$file2_meta00 && \\
+    echo "Done. NCO command \$((\$j+1))/\$num_nco, \$nco_command [\$file1]" || exit 1
+
+  file2_all="\$file2_all \$file2_meta00"
+
+  # process other NCO commands
+  for((j=1; j<\$num_nco; j=j+1))
+  do
+    nco_command=\${nco_commands[\$j]}
+    jj=\`printf "%2.2i" \$j\`
+    file2_meta=\${ftemp}_nco\${jj}_\${file2}
+
+    \$nco_command \$file1 \$file2_meta  || exit 5
+
+    # append files using other NCO commands into the first file
+    ncks -A \$file2_meta \$file2_meta00 && \\
+      echo "Done. NCO command \$((\$j+1))/\$num_nco, \$nco_command [\$file1]" || exit 1
+  done
+done
+
+#echo \$file2_all
+
+# set filename of merge
+if [ ! \${filename_merge} ]; then
+  file1=\${infile[0]}
+  name1=\`echo \${file1##*/}\`
+  file2=\${file_out_start}-\${name1}
+
+  name2=\`echo \${file2%%\${string_merge}.*}\`
+  name2="\${name2}\${string_merge}\${string_index}.nc"
+else
+  name2=\${filename_merge}
+fi
+
+# merge files
+if [ \$option_merge -a \$option_merge == "T" ]; then
+  echo ""
+  ncrcat \$file2_all \$name2 && \\
+    echo "Done. merge all cut files to [\$name2]" || exit 2
+  #echo "Done. merge [\$file2_all] to [\$name2]" || exit 2
+fi
+
+rm \${ftemp}*
+
+exit 0
+
+EOF
+#*** case: nco_command-files-merge end ***
+
+#*** case: "convert-png2mp4" start ***
+elif [ $casename_work -a $casename_work == "convert-png2mp4" ]; then
+cat >> $bash_name << EOF
+
+#**********************
+#  Description:
+#    Use ffmpeg to convert a series of PNG files to a MP4 file in given folders
+#    NOTE: Using ffmpeg, input file names MUST be \${string}\${numbering}.png". e.g. {test111-FLUT-month}{0001}{.png}  
+#**********************
+
+# data directory
+datadir=""
+pngdir=(\\
+
+        )
+pngfile_head="test111"   # file head of processing .png files
+numbering="4"            # numbering of png files. 4 means three digits, i.e. 0000
+file_type="png"          # file type 
+
+# wroking directory
+wrkdir="./"
+mp4file_head="video"     # replace pngfile_head with mp4file_head
+
+framerate=5              # the smaller the number, the lower the video
+
+## specified mp4 file names ##
+#file_out=(\\
+#          \$wrkdir/ppp1-FLUT.mp4
+#          \$wrkdir/ppp2-TS.mp4
+#         )
+
+##################
+# program start
+##################
+
+temp=\`date +%Y%m%d%H%M%S\`
+ftemp="\$wrkdir/mmggttss.\$temp"
+ftemp01=\$ftemp.temp01
+
+num_pngdir=\${#pngdir[@]}
+
+# check
+for ((i=0; i<\$num_pngdir; i=i+1))
+do
+   if [! -d \${pngdir[\$i]}]; then
+     echo "ERROR: folder [\${pngdir[\$i]}] does not exist!"
+     echo "Program stop"
+     exit 1
+   fi
+done
+
+for ((i=0; i<\$num_pngdir; i=i+1))
+do
+
+  #---------------------------
+  # list all files in pngdir
+  #---------------------------
+  dir1=\${pngdir[\$i]}
+
+  ls \$dir1/\${pngfile_head}* > \$ftemp01 || exit 1
+
+  # check with user
+  echo ""
+  echo "  process files"
+  echo "---------------------------"
+  nl \$ftemp01
+
+  #---------------------------
+  # get file names
+  #---------------------------
+
+  #*** get file names for ffmpeg ***
+  file1=\`sed -n 1p \$ftemp01\`
+  cc_all=\${#file1}	
+  cc1=0
+  cc2=\$((\$cc_all-\$numbering-4))  # cut off numbering and ".png"  
+  file2=\`echo \${file1:\$cc1:\$cc2}\`
+
+  mm1=\`echo \${file1:\$cc2:\$numbering}\`
+
+  filen=\`tail -1 \$ftemp01\`
+  mmn=\`echo \${filen:\$cc2:\$numbering}\`
+
+  file_work=\$file2    # file name that exclude numbering & file_type
+  #echo "a2",\$file_work
+
+  #*** get file names for output mp4  ***
+  if [ \${file_out[\$i]} ]; then
+    fileout1=\${file_out[\$i]}
+  else
+    ff1=\${file_work##*/}
+    fileout1=\`echo \$ff1 | sed "s/\$pngfile_head/\$mp4file_head/g"\`
+    fileout1=\${wrkdir}/\${fileout1}-\${mm1}_\${mmn}.mp4
+  fi
+  #echo \$fileout1
+
+  echo""
+  echo "   Combine all files to [\$fileout1]"
+  echo "---------------------------"
+  echo""
+  read -p "Is is correct? (y/n)  " choice
+  echo " "
+  if [ ! \$choice ] || [ ! \$choice == "y" ]; then
+    echo "program stop"
+    exit 1
+  fi
+
+  # file names for ffmpeg
+  file_mpg=\${file_work}%\${numbering}d.\$file_type
+  #echo a3,\$file_mpg
+
+  # use ffmpeg to create a .mp4 from input .png files
+  ffmpeg -framerate \$framerate -i "\$file_mpg" \$fileout1 || exit 11
+
+done
+
+rm \${ftemp01}
+
+exit 0
+
+EOF
+#*** case: convert-png2mp4 end ***
+
+#*** case: "cesm-monthly2monthly" start ***
+elif [ $casename_work -a $casename_work == "cesm-monthly2monthly" ]; then
+cat >> $bash_name << EOF
+
+#**********************
+# Description:
+#   get climatological monthly mean files of CESM monthly outputs
+#**********************
+
+casenames=(\\
+           "" \\
+           )
+
+server="flux"
+server="Cheyenne"
+
+# start and end years
+yyyy_start=4
+yyyy_end=13
+
+filehead_start="yy-"
+
+# wroking directory
+wrkdir="./"
+
+###########################
+# program initialization
+###########################
+
+ncase=\${#casenames[@]}
+
+for ((cc=0; cc<\$ncase; cc=cc+1))
+do
+  casename=\${casenames[\$cc]}
+  cc_plus=\$((\$cc+1))
+
+echo "--------------------------------"
+echo \$cc_plus/\$ncase, [\$casename]
+echo "--------------------------------"
+
+# check server
+if [ \$server -a \$server == "Cheyenne" ]; then
+  # cesm datadir @ Cheyenne
+  datadir="/glade/scratch/yihsuan/archive/\$casename/atm/hist"
+elif [ \$server -a \$server == "flux" ]; then
+  # cesm datadir @ flux
+  datadir="/scratch/climate_flux/yihsuan/\$casename/run/"
+else
+  echo "ERROR: server [\$server] is not supported"
+  echo "program stop"
+  exit 1
+fi
+
+# input file_head
+file_head="\$casename.cam.h0"
+
+yy_start_string=\`printf %2.2i \$yyyy_start\`
+yy_end_string=\`printf %2.2i \$yyyy_end\`
+
+# final file containing monthly mean of input files. E.g. the monthly mean of 10 years in a netCDF file.
+allmonth_head="\${filehead_start}\${file_head}"
+file_allmonth=\$wrkdir/\$allmonth_head."yy"\${yy_start_string}_\${yy_end_string}-climo_monthly.nc
+file_mean=\$wrkdir/\$allmonth_head."yy"\${yy_start_string}_\${yy_end_string}-climo_mean.nc
+#file_DJF=\$wrkdir/\$allmonth_head."yy"\${yy_start_string}_\${yy_end_string}-climo_DJF.nc
+#file_MAM=\$wrkdir/\$allmonth_head."yy"\${yy_start_string}_\${yy_end_string}-climo_MAM.nc
+#file_JJA=\$wrkdir/\$allmonth_head."yy"\${yy_start_string}_\${yy_end_string}-climo_JJA.nc
+#file_SON=\$wrkdir/\$allmonth_head."yy"\${yy_start_string}_\${yy_end_string}-climo_SON.nc
+
+##################
+# program start
+##################
+
+temp=\`date +%Y%m%d%H%M%S\`
+ftemp="\$wrkdir/\$temp.\${file_head}"
+
+# check whether datadir exist
+if [ ! \$datadir ] || [ ! -d \$datadir ]; then
+  echo "ERROR: data dir [\$datadir] does not exist"
+  echo "rpgram stop"
+  exit 1
+fi
+
+files_month=""
+
+for ((m=1; m<=12; m=m+1))
+do
+  mm1=\`printf "%2.2i" \$m\`
+  files=""
+  for ((yy1=\$yyyy_start; yy1<=\$yyyy_end; yy1=yy1+1))
+  do
+
+    yy=\`printf %4.4i \$yy1\`
+    file1="\$datadir/\${file_head}.\$yy-\$mm1.nc"
+    #echo \$file1
+
+    if [ -f \$file1 ]; then
+      files="\$files \$file1"
+    else
+      echo "ERROR: [\$file1] does not exist"
+      exit 1
+    fi
+  done
+
+  #echo \$m,\$files
+  file2="\${ftemp}_month\$mm1.nc"
+  #echo \$file2
+ 
+  echo "process files [\$files]"
+  echo ""
+  ncra \$files \$file2 && echo "Done. month [\$mm1], file [\$file2]" || exit 1
+  echo ""
+  files_month="\$files_month \$file2"
+
+  #echo \$m,\$files
+  #echo ""
+done
+
+  # merge all month files into a file_allmonth
+  echo ""
+  ncrcat \$files_month \$file_allmonth && echo "Done. ncrcat [\$files_month] to [\$file_allmonth]" || exit 1
+
+  echo ""
+  ncra \$file_allmonth \$file_mean && echo "Done. create [\$file_mean] by average [\$file_allmonth]" || exit 301
+
+  echo ""
+  #ncrcat \${ftemp}_month12.nc \${ftemp}_month01.nc \${ftemp}_month02.nc \$file_DJF && echo "Done. ncrcat to [\$file_DJF]" || exit 1
+  #ncrcat \${ftemp}_month03.nc \${ftemp}_month04.nc \${ftemp}_month05.nc \$file_MAM && echo "Done. ncrcat to [\$file_MAM]" || exit 1
+  #ncrcat \${ftemp}_month06.nc \${ftemp}_month07.nc \${ftemp}_month08.nc \$file_JJA && echo "Done. ncrcat to [\$file_JJA]" || exit 1
+  #ncrcat \${ftemp}_month09.nc \${ftemp}_month10.nc \${ftemp}_month11.nc \$file_SON && echo "Done. ncrcat to [\$file_SON]" || exit 1
+
+  rm \$ftemp*
+
+done # done of ncase
+
+exit 0
+
+EOF
+#*** case: cesm-monthly2monthly end ***
+
+#*** case: "cesm-monthly2series" start ***
+elif [ $casename_work -a $casename_work == "cesm-monthly2series" ]; then
+cat >> $bash_name << EOF
+
+#**********************
+# Description:
+#   Create a netCDF file containing a CESM monthly series of user-selected variables
+#**********************
+
+# NCO command
+nco_command="ncks -v TS,FLUT,FLDS,FSNTOA"
+
+casenames=(\\
+           "" \\
+           )
+
+server="flux"
+server="Cheyenne"
+
+# start and end years
+yyyy_start=4
+yyyy_end=13
+
+filehead_start="yy-"
+
+# wroking directory
+wrkdir="./"
+
+###########################
+# program initialization
+###########################
+
+ncase=\${#casenames[@]}
+
+for ((cc=0; cc<\$ncase; cc=cc+1))
+do
+  casename=\${casenames[\$cc]}
+  cc_plus=\$((\$cc+1))
+
+echo "--------------------------------"
+echo \$cc_plus/\$ncase, [\$casename]
+echo "--------------------------------"
+
+# check server
+if [ \$server -a \$server == "Cheyenne" ]; then
+  # cesm datadir @ Cheyenne
+  datadir="/glade/scratch/yihsuan/archive/\$casename/atm/hist"
+elif [ \$server -a \$server == "flux" ]; then
+  # cesm datadir @ flux
+  datadir="/scratch/climate_flux/yihsuan/\$casename/run/"
+else
+  echo "ERROR: server [\$server] is not supported"
+  echo "program stop"
+  exit 1
+fi
+
+# input file_head
+file_head="\$casename.cam.h0"
+
+yy_start_string=\`printf %2.2i \$yyyy_start\`
+yy_end_string=\`printf %2.2i \$yyyy_end\`
+
+# final file containing monthly series
+allmonth_head="\${filehead_start}\${file_head}"
+file_series=\$wrkdir/\$allmonth_head."yy"\${yy_start_string}_\${yy_end_string}-monthly_series.nc
+
+##################
+# program start
+##################
+
+#set -x
+
+temp=\`date +%Y%m%d%H%M%S\`
+ftemp="\$wrkdir/\$temp.\${file_head}"
+
+# check whether datadir exist
+if [ ! \$datadir ] || [ ! -d \$datadir ]; then
+  echo "ERROR: data dir [\$datadir] does not exist"
+  echo "program stop"
+  exit 1
+fi
+
+files=""
+count=1
+
+# get variables from each file
+for ((yy1=\$yyyy_start; yy1<=\$yyyy_end; yy1=yy1+1))
+do
+  yy=\`printf %4.4i \$yy1\`
+
+  for ((m=1; m<=12; m=m+1))
+  do
+    mm1=\`printf "%2.2i" \$m\`
+
+    file1="\$datadir/\${file_head}.\$yy-\$mm1.nc"
+    #echo \$file1
+
+    file2="\$wrkdir/\${temp}-\${file_head}.\$yy-\$mm1.nc"
+
+    if [ -f \$file1 ]; then
+      files="\$files \$file2"
+      \$nco_command \$file1 \$file2 \\
+        && echo "Done. \$count: [\$nco_command \$file1]"
+      count=\$((\$count+1))
+    else
+      echo "ERROR: [\$file1] does not exist"
+      exit 1
+    fi
+  done
+done
+
+# merge to a file
+echo ""
+ncrcat -h \$files \$file_series \\
+  && echo "Done. create [\$file_series]"
+
+rm \$files
+
+done # done of ncase
+
+exit 0
+
+EOF
+#*** case: cesm-monthly2series end ***
+
+#*** case: "cesm-monthly2seasonal" start ***
+elif [ $casename_work -a $casename_work == "cesm-monthly2seasonal" ]; then
+cat >> $bash_name << EOF
+
+#**********************
+# Description:
+#   get climatological seasonal mean files of CESM monthly outputs
+#**********************
+
+casenames=(\\
+           "c5-cesm111-E2000_rrtmg_emis_mc6_rtr2_noScat" \\
+           "c10-cesm111-E2000_rrtmg_mc6_rtr2" \\
+           "c11-cesm111-E2000_rrtmg_mc6_rtr2_noScat" \\
+           "c12-cesm111-E2000_rrtmg_emis_mc6_rtr2" \\
+           )
+
+#server="flux"
+server="Cheyenne"
+
+# start and end years
+yyyy_start=6
+yyyy_end=15
+
+filehead_start="yy-"
+
+#month_strings=("DJF" "MAM" "JJA" "SON" "ANN")  # choose seasaonal average
+month_strings=("ANN")
+
+# wroking directory
+wrkdir="./"
+
+###########################
+# program initialization
+###########################
+
+ncase=\${#casenames[@]}
+temp=\`date +%Y%m%d%H%M%S\`
+
+for ((cc=0; cc<\$ncase; cc=cc+1))
+do
+  casename=\${casenames[\$cc]}
+  cc_plus=\$((\$cc+1))
+
+  echo "--------------------------------"
+  echo \$cc_plus/\$ncase, [\$casename]
+  echo "--------------------------------"
+  
+  # check server
+  if [ \$server -a \$server == "Cheyenne" ]; then
+    # cesm datadir @ Cheyenne
+    datadir="/glade/scratch/yihsuan/archive/\$casename/atm/hist"
+  elif [ \$server -a \$server == "flux" ]; then
+    # cesm datadir @ flux
+    datadir="/scratch/climate_flux/yihsuan/\$casename/run/"
+  else
+    echo "ERROR: server [\$server] is not supported"
+    echo "program stop"
+    exit 1
+  fi
+
+  # check whether datadir exist
+  if [ ! \$datadir ] || [ ! -d \$datadir ]; then
+    echo "ERROR: data dir [\$datadir] does not exist"
+    echo "rpgram stop"
+    exit 1
+  fi
+
+  # input file_head
+  file_head="\$casename.cam.h0"
+  ftemp="\$wrkdir/\$temp.\${file_head}"
+  
+  yy_start_string=\`printf %2.2i \$yyyy_start\`
+  yy_end_string=\`printf %2.2i \$yyyy_end\`
+  
+  month_strings=("DJF" "MAM" "JJA" "SON")
+  
+  for season1 in \${month_strings[@]}
+  #for season1 in DJF #\${month_strings[@]}
+  do
+    echo ""
+    echo "create climatological [\$season1] from year [\${yy_start_string}] to [\${yy_end_string}] ..."
+    head1="\${filehead_start}\${file_head}"
+    file_out=\$wrkdir/\$head1."yy"\${yy_start_string}_\${yy_end_string}-climo_\${season1}.nc
+
+    files_season1=""
+    if [ \$season1 == "DJF" ]; then
+      month_num=(12 1 2)
+    elif [ \$season1 == "MAM" ]; then
+      month_num=(3 4 5)
+    elif [ \$season1 == "JJA" ]; then
+      month_num=(6 7 8)
+    elif [ \$season1 == "SON" ]; then
+      month_num=(9 10 11)
+    elif [ \$season1 == "ANN" ]; then
+      month_num=(1 2 3 4 5 6 7 8 9 10 11 12)
+    fi 
+  
+    for ((yy1=\$yyyy_start; yy1<=\$yyyy_end; yy1=yy1+1))
+    do
+      yy=\`printf %4.4i \$yy1\`
+      files_month1=""
+  
+      for month1 in \${month_num[@]}
+         do
+        mm1=\`printf "%2.2i" \$month1\`
+        file1="\$datadir/\${file_head}.\$yy-\$mm1.nc"
+        #echo \$file1
+    
+        if [ -f \$file1 ]; then
+          files_month1="\$files_month1 \$file1"
+        else
+          echo "ERROR: [\$file1] does not exist"
+          exit 1
+        fi
+      done  # end of of month
+
+      file2=\$ftemp-\$season1-\$yy.nc
+      #echo \$files_month1
+      ncra \$files_month1 \$file2 || exit 1
+      if [ -f \$file2 ]; then
+        files_season1="\$files_season1 \$file2"
+      else
+        echo "ERROR: [\$file2] does not exist"
+        exit 1
+      fi      
+
+    done  # end do of year
+
+    #echo \$files_season1 
+    ncrcat \$files_season1 \$file_out \\
+      && echo "  Done. create [\$file_out]" || exit 3
+
+  done # end do of season
+
+  rm \$ftemp*
+done  # end do of case
+
+
+exit 0
+
+EOF
+#*** case: cesm-monthly2seasonal end ***
+
+#*** case: "nco_command-files" start ***
+elif [ $casename_work -a $casename_work == "nco_command-files" ]; then
+cat >> $bash_name << EOF
+
+#*************************************************
+# Description:
+#   Apply NCO command for each file inputing from command lines
+#*************************************************
+
+nco_command="ncks -v T"
+
+file_out_start="xx-"	# resulting filename start with this
+file_out_end="test2"	# resulting filename end with this
+
+wrkdir="./"
+
+##################
+# program start
+##################
+
+temp=\`date +%Y%m%d%H%M%S\`
+ftemp=\$wrkdir/\$temp
+
+# read input parameters from command line
+pram_num=\$#
+
+if [ \$pram_num -eq 0 ]; then
+  echo "No given file!"
+  echo "program stop"
+  exit 3
+else
+
+  for (( i=0; i<=\$pram_num; i=i+1  ))
+  do
+    infile[i]=\$1
+    shift
+  done
+fi
+
+# get total number of files
+num_infile=\$((\${#infile[@]}-1))
+
+for ((i=0; i<\$num_infile; i=i+1))
+do
+  file1=\${infile[\$i]}
+  name1=\`echo \${file1##*/}\`
+  #echo \$name1
+
+  name2=\${name1::-3}
+  #echo \$name2
+  file2=\$wrkdir/\${file_out_start}\${name2}-\${file_out_end}.nc
+  #echo \$file2
+
+  outfiles[i]=\$file2
+done
+
+# check with user
+echo "------------------------"
+echo "Apply NCO command on each file"
+echo ""
+echo "  NCO command: [\${nco_command}]"
+echo ""
+for ((i=0; i<\$num_infile; i=i+1))
+do
+  j=\$((\$i+1))
+  echo "  input/output files        : \$j/\$num_infile, [\${infile[\$i]}] , [\${outfiles[\$i]}]"
+done
+echo "------------------------"
+read -p "Is is correct? (y/n)  " choice
+echo " "
+if [ ! \$choice ] || [ ! \$choice == "y" ]; then
+  echo "Cancel by user"
+  echo "program stop"
+  exit 5
+fi
+
+#==============
+# execute NCO
+#==============
+
+# process each file
+for((i=0; i<\$num_infile; i=i+1))
+do
+  file1=\${infile[\$i]}
+  file2=\${outfiles[\$i]}
+  #echo \$i,\$file1
+  #echo \$i,\$file2
+
+  \$nco_command \$file1 \$file2 && \\
+      echo "Done. \$nco_command [\$file1]" || exit 1
+done
+
+exit 0
+EOF
+#*** case: nco_command-files end ***
+
+#*** case: "exe-files-strings" start ***
+elif [ $casename_work -a $casename_work == "exe-files-strings" ]; then
+cat >> $bash_name << EOF
+
+#**********************
+#  Description:
+#    execute each file with a varying string while the other are the same
+#      e.g. \$datadir/\$sting
+#**********************
+
+###################
+# user setting
+###################
+
+# The default file path is \$datadir/\${string}\${subdir}
+# modify "file1" to set correct path of the file if necessary
+strings=(\\
+         "" \\
+        )
+datadir=""
+subdir="/"
+
+wrkdir="./"
+
+# process command for each file
+
+#command1="ln_-s"
+#command1_description="Create symbolic link of files to [\$wrkdir]"
+
+#command1="cp_-ir"
+#command1_description="Copy files/folders to [\$wrkdir]"
+
+#################
+# program start
+#################
+
+# temp variable
+temp=\`date +%Y%m%d%H%M%S\`
+
+#---------
+# check 
+#---------
+
+if [ ! \$command1 ]; then
+  echo "ERROR: command is not set"
+  echo "Please edit this script to set correct command"
+  exit 1
+fi
+
+#----------------------
+# get files for work
+#----------------------
+
+num_strings=\${#strings[@]}
+j=0
+
+for ((i=0; i<\$num_strings; i=i+1))
+do
+  string1=\${strings[\$i]}
+  #echo \$string1
+
+  file1=\${datadir}/\${string1}\${subdir}
+  #echo \$file1
+
+  if [ -f \$file1 ] || [ -d \$file1 ]; then
+    infile[\$j]=\$file1
+    j=\$((\$j+1))
+
+  else
+    echo "ERROR: [\$file1] does not exist!"
+    echo "program stop"
+    exit 1
+  fi
+done
+
+
+# get total number of files
+num_infile=\$((\${#infile[@]}))
+
+# check with user
+echo "------------------------"
+echo "\$command1_description"
+echo ""
+for ((i=0; i<\$num_infile; i=i+1))
+do
+  j=\$((\$i+1))
+  echo "  input files        : \$j/\$num_infile, [\${infile[\$i]}]"
+done
+echo "------------------------"
+read -p "Is is correct? (y/n)  " choice
+echo " "
+if [ ! \$choice ] || [ ! \$choice == "y" ]; then
+  echo "Cancel by user"
+  echo "program stop"
+  exit 5
+fi
+
+#--------------------
+# process each file
+#--------------------
+
+for ((i=0; i<\$num_infile; i=i+1))
+do
+  file1=\${infile[\$i]}
+  #echo \$file1
+
+  if [ \$command1 ] && [ \$command1 == "ln_-s" ]; then
+    ln -s \$file1 \$wrkdir && \\
+      echo "Done. link [\$file1] to [\$wrkdir]"
+
+  elif [ \$command1 ] && [ \$command1 == "cp_-ir" ]; then
+    cp -ir \$file1 \$wrkdir && \\
+      echo "Done. copy [\$file1] to [\$wrkdir]"
+
+  fi
+done
+
+exit 0
+
+EOF
+#*** case: exe-files-strings end ***
+
+#*** case: "e3sm-monthly2climo" start ***
+elif [ $casename_work -a $casename_work == "e3sm-monthly2climo" ]; then
+cat >> $bash_name << EOF
+
+#**********************
+#  Description:
+#    Obtain climatological files (ANN,DJF,JJA etc.) form E3SM monthly outputs
+#**********************
+
+#!/bin/bash
+
+#! /usr/bin/env perl
+#------------------------------------------------------------------------------
+# Batch system directives
+#------------------------------------------------------------------------------
+#SBATCH  --job-name=CPH.ne30
+#SBATCH  --nodes=1
+#SBATCH  --exclusive
+#SBATCH  --output=CPH.ne30
+#SBATCH  --time=03:30:00
+#SBATCH  --partition=regular
+#SBATCH  --account=acme
+
+# for series of ne30 runs
+
+# submitted using command like 
+# sbatch -A acme --nodes=1 --time=00:30:00 --partition=debug --job-name=climo_nco --mail-type=END --error=./climo_nco.err --output=./climo_nco.out cori.2.slurm
+
+# If using mpi mode, preferrable request 12 nodes, or it may fail if history file is large.
+
+#with -a sdd to use Jan of startYear and Dec of endYear
+
+# should it be passed to srun?
+# "-a sdd" using Dec of the same year
+#~zender/bin_edison/ncclimo -p serial -c \$CASEID -s 0001 -e 0001 -a sdd \\
+#~zender/bin_edison/ncclimo -p serial -c \$CASEID -s 0001 -e 0001 \\
+
+###################
+# user setting
+###################
+
+# homepath
+homepath="/global/homes/y/yihsuan"
+
+# wroking directory
+wrkdir="./"
+
+            #"b1-E3SM_FC5_standard" \\
+casenames=(\\
+            "b2-E3SM_FC5_mc6_rtr2" \\
+            "b3-E3SM_FC5_mc6_rtr2_noScat" \\
+           )
+
+start_year=0002
+end_year=0006
+
+##################
+# program start
+##################
+
+ncase=\${#casenames[@]}
+
+for ((i=0; i<\$ncase; i=i+1))
+do
+  CASEID=\${casenames[\$i]}
+
+  i_plus=\$((\$i+1))
+  echo ""
+  echo "----------------------------"
+  echo "Process \$i_plus/\$ncase, [\$CASEID]"
+  echo "----------------------------"
+  echo ""
+
+  # path of monthly E3SM outputs
+  datapath="/global/cscratch1/sd/yihsuan/acme_scratch/edison/\${CASEID}/run"
+ 
+  # path for storing climo files, i.e. ANN,DJF, etc.
+  outpath="/global/cscratch1/sd/yihsuan/acme_archieve/\${CASEID}"
+
+  outpath_savse="\$outpath/sav_se"
+
+  # use NCO nclimo: http://nco.sf.net/nco.html#ncclimo
+  #   -O Directory to hold regridded climo files.
+  #   -o Directory to hold computed (output) native grid climo files.
+  ~zender/bin_edison/ncclimo -p serial -c \$CASEID -s \$start_year -e \$end_year -a sdd \\
+  -i \$datapath  \\
+  -r ~zender/data/maps/map_ne30np4_to_fv257x512_bilin.20150901.nc \\
+  -o ~/gscr2/ACME/DIAG/climo/\$oCASEID/sav_se \\
+  -O \$outpath  || exit 1
+done
+
+exit 0
+
+EOF
+#*** case: e3sm-monthly2climo end ***
+
+#*** case: "e3sm-diag-package" start ***
+elif [ $casename_work -a $casename_work == "e3sm-diag-package" ]; then
+cat >> $bash_name << EOF
+
+#**********************
+#  Description:
+#    1. Use E3SM diagnostic package to draw a bunch of figures
+#       https://e3sm-project.github.io/acme_diags/docs/html/quick-guide-edison.html
+#    2. use batch system on Edison, NERSC
+#**********************
+
+###################
+# user setting
+###################
+
+# homepath
+homepath="/global/homes/y/yihsuan"
+
+# wroking directory
+wrkdir="/global/homes/y/yihsuan/work/research/E3SM_test/E3SM_diag"  # diagnostic results will put in \$wrkdir/\$casenames
+
+            #"b1-E3SM_FC5_standard" \\
+            #"b2-E3SM_FC5_mc6_rtr2" \\
+            #"b3-E3SM_FC5_mc6_rtr2_noScat" \\
+
+casenames=(\\
+            "b1-E3SM_FC5_standard" \\
+            "b2-E3SM_FC5_mc6_rtr2" \\
+            "b3-E3SM_FC5_mc6_rtr2_noScat" \\
+           )
+
+nnode=1  # a single node (24 cores) 
+ncore=\$((\$nnode * 24))
+walltime="00:30:00"  # HH:MM:SS, debug node limit is 30 minutes
+
+account="m2136"    # project number to charge
+
+##################
+# program start
+##################
+
+# temp variable
+temp=\`date +%Y%m%d%H%M%S\`
+
+set -x
+
+#source activate e3sm_diags_env || exit 1  # MUST load module python/2.7-anaconda-4.4 otherwise this would fail
+
+ncase=\${#casenames[@]}
+
+for ((i=0; i<\$ncase; i=i+1))
+do
+  #----------------------
+  # setting for each case
+  #----------------------
+  case1=\${casenames[\$i]}
+  job1="diag-\$case1"
+  results_dir="\$wrkdir/\$case1"
+  results_dir_viewer="\$wrkdir/\$case1/viewer"
+  diagsh_py="\$results_dir_viewer/\${job1}.py"
+  diagsh_batch="\$results_dir_viewer/\${job1}.batch"
+
+  # create folders
+  if [ ! -d \$results_dir ]; then
+    mkdir -p \$results_dir || exit 1
+  fi
+  if [ ! -d \$results_dir_viewer ]; then
+    mkdir -p \$results_dir_viewer || exit 1
+  fi
+
+  i_plus=\$((\$i+1))
+  echo ""
+  echo "----------------------------"
+  echo "Process \$i_plus/\$ncase, [\$case1]"
+  echo "----------------------------"
+  echo ""
+
+  #----------------------
+  # create a python file
+  #----------------------
+  #   test_data_path: a folder contains case1_01_climo.nc, case1_ANN.nc etc.
+  #   sets = ["lat_lon"]
+  cat > \$diagsh_py << EOF1
+reference_data_path = '/global/project/projectdirs/acme/acme_diags/obs_for_acme_diags/'
+test_data_path = '/global/cscratch1/sd/yihsuan/acme_archieve/\$case1/'
+
+test_name = '\$case1'
+
+backend = 'mpl'  # 'vcs' is for vcs plots
+
+results_dir = '\$results_dir'  # name of folder where all results will be stored
+
+multiprocessing = True
+num_workers =  \$ncore
+
+EOF1
+
+  #-----------------------
+  # create a batch script
+  #-----------------------
+
+  cat > \$diagsh_batch << EOF2
+#!/bin/bash -l
+#SBATCH --job-name=\$job1
+#SBATCH --output=\$job1.o%j
+#SBATCH --partition=regular
+#SBATCH --account=\$account
+#SBATCH --nodes=\$nnode
+#SBATCH --time=\$walltime
+
+source activate e3sm_diags_env
+cd \$results_dir_viewer || exit 1
+e3sm_diags -p \$diagsh_py || exit 3
+
+EOF2
+
+  #--------------
+  # submit job
+  #--------------
+  sbatch \$diagsh_batch || exit 99
+
+  # remove the python file
+  #cp \$diagsh_py \$results_dir/"\$job1.py" || exit 1
+  #cp \$diagsh_batch \$results_dir/"\$job1.batch" || exit 1
+  #rm \$diagsh.* || exit 1
+done
+
+exit 0
+
+EOF
+#*** case: e3sm-diag-package end ***
+
+
+#*** case: "e3sm-diag-package-login_node" start ***
+elif [ $casename_work -a $casename_work == "e3sm-diag-package-login_node" ]; then
+cat >> $bash_name << EOF
+
+#**********************
+#  Description:
+#    Use E3SM diagnostic package to draw a bunch of figures
+#    https://e3sm-project.github.io/acme_diags/docs/html/quick-guide-edison.html
+#**********************
+
+###################
+# user setting
+###################
+
+# homepath
+homepath="/global/homes/y/yihsuan"
+
+# wroking directory
+wrkdir="./"
+
+casenames=(\\
+            "b1-E3SM_FC5_standard" \\
+           )
+
+##################
+# program start
+##################
+
+# temp variable
+temp=\`date +%Y%m%d%H%M%S\`
+
+set -x
+
+source activate e3sm_diags_env || exit 1  # MUST load module python/2.7-anaconda-4.4 otherwise this would fail
+
+ftemp="\$wrkdir/ddkk_temp_\$temp.py"
+ncase=\${#casenames[@]}
+
+for ((i=0; i<\$ncase; i=i+1))
+do
+  case1=\${casenames[\$i]}
+  results_dir="\$wrkdir/E3SM_diag/\$case1"
+
+  i_plus=\$((\$i+1))
+  echo ""
+  echo "----------------------------"
+  echo "Process \$i_plus/\$ncase, [\$case1]"
+  echo "----------------------------"
+  echo ""
+
+  # create a python file
+  #   test_data_path: a folder contains case1_01_climo.nc, case1_ANN.nc etc.
+  cat > \$ftemp << EOF1
+reference_data_path = '/global/project/projectdirs/acme/acme_diags/obs_for_acme_diags/'
+test_data_path = '/global/cscratch1/sd/yihsuan/acme_archieve/\$case1/'
+
+test_name = '\$case1'
+
+sets = ["lat_lon"]
+
+backend = 'mpl'  # 'vcs' is for vcs plots
+
+results_dir = '\$results_dir'  # name of folder where all results will be stored
+EOF1
+
+  # execute the python file
+  e3sm_diags -p \$ftemp || exit 5
+
+  # remove the python file
+  rm \$ftemp || exit 1
+
+done
+
+exit 0
+
+EOF
+#*** case: e3sm-diag-package-login_node end ***
+
+#*** case: "e3sm-scm-reinitial_run" start ***
+elif [ $casename_work -a $casename_work == "e3sm-scm-reinitial_run" ]; then
+cat >> $bash_name << EOF
+
+#*******************************
+# Description:
+#   reinitialze E3SM-SCM with M-PACE hours and then run 36 hours
+#*******************************
+
+###################
+# user setting
+###################
+
+casenames=("" \\
+           "" \\
+           "" \\
+          )
+
+server="edison"
+
+# wroking directory
+wrkdir="./"
+
+# temp variable
+temp=\`date +%Y%m%d%H%M%S\`
+
+### M-PACE reinitialze every 24 hours and then run 36 hours ###
+startdate=2004-10-05 # Start date in IOP file
+start_in_sec=7200 # start time in seconds in IOP file
+stop_option="nhours"
+stop_n=36  # full M-PACE
+
+start_day=5 # run 10/05 to 10/20
+#end_day=8
+end_day=20
+### M-PACE reinitialze every 24 hours and then run 36 hours ###
+
+##################
+# program start
+##################
+
+#set -x
+
+for casename in \${casenames[@]}
+do
+  echo "--------------------------"
+  echo "CASE: [\$casename]"
+  echo "--------------------------"
+  echo ""
+
+  if [ \$server == "edison" ]; then
+    casedir="/global/cscratch1/sd/yihsuan/E3SM_simulations/\$casename"
+  fi
+
+  #if [ ! \$casedir ] || [ ! -d \$casedir ];then
+  if [ \$casedir -a -d \$casedir ];then
+    cd \$casedir || exit 3
+  else  
+    echo "ERROR: case dir [\$casedir] does not exist"
+    echo "program stop"
+    exit 1
+  fi  
+
+  cd \$casedir || exit 3
+
+  cat > user_nl_cam << EOF1
+ micro_mg_berg_eff_factor = 0.9D0
+ cld_macmic_num_steps = 8
+ cosp_lite = .true.
+ use_gw_front = .true.
+ iopfile = '/global/homes/y/yihsuan/data/scm-iop/IOP_4scam_nsa0410.nc'
+ mfilt = 5000
+ nhtfrq = -3
+ scm_iop_srf_prop = .true. 
+ scm_relaxation = .true.
+ iradlw = 1
+ iradsw = 1
+ swrad_off = .false. 
+ lwrad_off = .false.
+ scmlat = 71.75 
+ scmlon = 209.0
+ use_hetfrz_classnuc = .true.
+ micro_mg_dcs_tdep = .true.
+ microp_aero_wsub_scheme = 1
+ sscav_tuning = .true.
+ convproc_do_aer = .true.
+ demott_ice_nuc = .true.
+ liqcf_fix = .true.
+ regen_fix = .true.
+ resus_fix = .false.
+ mam_amicphys_optaa = 1
+ fix_g1_err_ndrop = .true.
+ ssalt_tuning = .true.
+ use_rad_dt_cosz = .true.
+ ice_sed_ai = 500.0
+ cldfrc_dp1 = 0.045D0
+ clubb_ice_deep = 16.e-6
+ clubb_ice_sh = 50.e-6
+ clubb_liq_deep = 8.e-6
+ clubb_liq_sh = 10.e-6
+ clubb_C2rt = 1.75D0
+ zmconv_c0_lnd = 0.007
+ zmconv_c0_ocn = 0.007
+ zmconv_dmpdz = -0.7e-3
+ zmconv_ke = 1.5E-6
+ effgw_oro = 0.25
+ seasalt_emis_scale = 0.85
+ dust_emis_fact = 2.05D0
+ clubb_gamma_coef = 0.32
+ clubb_C8 = 4.3
+ cldfrc2m_rhmaxi = 1.05D0
+ clubb_c_K10 = 0.3 
+ effgw_beres = 0.4
+ do_tms = .false.
+ so4_sz_thresh_icenuc = 0.075e-6
+ n_so4_monolayers_pcage = 8.0D0
+ micro_mg_accre_enhan_fac = 1.5D0
+ zmconv_tiedke_add = 0.8D0
+ zmconv_cape_cin = 1
+ zmconv_mx_bot_lyr_adj = 2
+ taubgnd = 2.5D-3
+ clubb_C1 = 1.335
+ raytau0 = 5.0D0
+ prc_coef1 = 30500.0D0
+ prc_exp = 3.19D0 
+ prc_exp1 = -1.2D0
+ se_ftype = 2
+ clubb_C14 = 1.3D0
+ relvar_fix = .true. 
+ mg_prc_coeff_fix = .true.
+ rrtmg_temp_fix = .true.
+  use_hetfrz_classnuc = .false.
+  aerodep_flx_type = 'CYCLICAL'
+  aerodep_flx_datapath = '/project/projectdirs/acme/inputdata/atm/cam/chem/trop_mam/aero' 
+  aerodep_flx_file = 'mam4_0.9x1.2_L72_2000clim_c170323.nc'
+  aerodep_flx_cycle_yr = 01
+  prescribed_aero_type = 'CYCLICAL'
+  prescribed_aero_datapath='/project/projectdirs/acme/inputdata/atm/cam/chem/trop_mam/aero'
+  prescribed_aero_file='mam4_0.9x1.2_L72_2000clim_c170323.nc'
+  prescribed_aero_cycle_yr = 01
+EOF1
+  for ((dd=\$start_day; dd<=\$end_day; dd=dd+1))
+  do
+    dd1=\`printf "%2.2i" \$dd\`
+    startdate="2004-10-\$dd1"
+    #echo \$startdate
+
+    ./xmlchange RUN_STARTDATE="\$startdate",START_TOD="\$start_in_sec",STOP_OPTION="\$stop_option",STOP_N="\$stop_n"
+    ./case.submit --no-batch
+    echo "Done. run \$startdate"
+  done  # done of dd
+done # done of case
+exit 0
+
+EOF
+#*** case: e3sm-scm-reinitial_run end ***
+
+#*** case: "e3sm-scm-reinitial_getsteps" start ***
+elif [ $casename_work -a $casename_work == "e3sm-scm-reinitial_getsteps" ]; then
+cat >> $bash_name << EOF
+#**********************************************************
+# Description:
+#   choose the last 24 hour of the total 36 hour simulations in each SCM file
+#   and them merge them together
+#**********************************************************
+
+casenames=(\\
+           "c1-scm-mpace-standard" \\
+           "c2-scm-mpace-mc6_rtr2" \\
+           "c3-scm-mpace-mc6_rtr2_noScat" \\
+           )
+
+#server="flux"
+#server="Cheyenne"
+server="edison"
+
+# start and end days of SCM-MPACE 
+start_day=5
+#end_day=8
+end_day=20
+
+# date on file out 
+start_day_out=\`printf "%2.2i" \$((\$start_day+1))\`
+end_day_out=\`printf "%2.2i" \$((\$end_day+1))\`
+
+wrkdir="./"
+
+#filehead_start="yy-"
+
+###########################
+# program initialization
+###########################
+
+temp=\`date +%Y%m%d%H%M%S\`
+ncase=\${#casenames[@]}
+
+for ((cc=0; cc<\$ncase; cc=cc+1))
+do
+  casename=\${casenames[\$cc]}
+  cc_plus=\$((\$cc+1))
+  #file_out="\$wrkdir/\$casename.cam.h0.2004-10-\${start_day_out}_2004_10-\${end_day_out}-3hr.nc"
+  efile_out="\$wrkdir/\$casename.cam.h0.20041005_02Z-20041021_14Z-3hr.nc"
+  file_out="\$wrkdir/\$casename.cam.h0.2004-10-05-07200-3hr-reinit.nc"
+
+echo "--------------------------------"
+echo \$cc_plus/\$ncase, [\$casename]
+echo "--------------------------------"
+
+# check server
+if [ \$server -a \$server == "Cheyenne" ]; then
+  # cesm datadir @ Cheyenne
+  datadir="/glade/scratch/yihsuan/archive/\$casename/atm/hist"
+
+elif [ \$server -a \$server == "flux" ]; then
+  # cesm datadir @ flux
+  datadir="/scratch/climate_flux/yihsuan/\$casename/run/"
+
+elif [ \$server -a \$server == "edison" ]; then
+  # cesm datadir @ flux
+  datadir="/global/cscratch1/sd/yihsuan/E3SM_simulations/\$casename/run/"
+
+else
+  echo "ERROR: server [\$server] is not supported"
+  echo "program stop"
+  exit 1
+fi
+
+# input file_head
+file_head="\$casename.cam.h0"
+
+# check whether datadir exist
+if [ ! \$datadir ] || [ ! -d \$datadir ]; then
+  echo "ERROR: data dir [\$datadir] does not exist"
+  echo "rpgram stop"
+  exit 1
+fi
+
+file_append=""
+
+for ((dd=\$start_day; dd<=\$end_day; dd=dd+1))
+do
+  dd1=\`printf "%2.2i" \$dd\`
+  startdate="2004-10-\$dd1"
+
+  file1=\$datadir/\$file_head.\$startdate-07200.nc
+  file_temp=\$wrkdir/\$temp-\$file_head.\$startdate-07200.nc
+  if [ ! -f \$file1 ]; then
+    echo "[\$file1] does not exist!"
+    exit 1
+  fi
+  #echo \$file1
+
+  ncks -F -d time,5,12 \$file1 \$file_temp \\
+    && echo "Done. process [\$file1]" || exit 5
+  file_append="\$file_append \$file_temp"
+done
+
+  echo ""
+  ncrcat \$file_append \$file_out \\
+    && echo "Done. create [\$file_out]" || exit 5
+  echo ""
+
+  rm \$file_append
+
+done # done of ncase
+
+
+exit 0
+
+EOF
+#*** case: e3sm-scm-reinitial_getsteps end ***
+
+#*** case: "cesm-branch-run" start ***
+elif [ $casename_work -a $casename_work == "cesm-branch-run" ]; then
+cat >> $bash_name << EOF
+
+#**********************
+#  Description:
+#    run CESM branch. ref: http://www.cesm.ucar.edu/models/cesm1.2/cesm/doc/usersguide/x1894.html
+#**********************
+
+# SET MACHINE TYPE AND FILEPATHS
+export USER="yihsuan"
+export email="\$USER@umich.edu"
+
+#*** NCAR Cheyenne setup ***
+export MACH="cheyenne"
+export CCSMROOT="/glade/u/home/yihsuan/model/cesm1_1_1"
+export RUNDIR="/glade/scratch//yihsuan"     # directory of 
+
+# SET CASE NAME
+date=\`date +%Y%m%d-%H%M\`
+
+export CASE="x01-branch-\$date"  # branch run case name
+export RUN_REFCASE="h00-cesm111-FC5-standard" # reference case name
+export RUN_REFDATE="0009-01-01"               # restart file
+export RESTPATH_REFCASE=\$RUNDIR/archive/\$RUN_REFCASE/rest/\${RUN_REFDATE}-00000  # restart files, i.e. cam.r.*, rpointer etc
+export CASEROOT="\${RUNDIR}/\${CASE}"   # case root
+export CASEROOT_RUN="\${RUNDIR}/\${CASE}/run"   # run dir in case root. RESTPATH_REFCASE will be copies to CASEROOT_RUN
+
+# SET HORIZONTAL RESOLUTION:
+# for supported resolutions, see: http://www.cesm.ucar.edu/models/cesm1.1/cesm/doc/modelnl/grid.html
+export RES="1.9x2.5_gx1v6"  # 2 degree
+
+# COMPONENT SET:
+# for ~100 options, see:
+# http://www.cesm.ucar.edu/models/cesm1.1/cesm/doc/modelnl/compsets.html
+#
+#export COMPSET="B_2000"              # Active atmosphere, land, ocean, and sea-ice components, present day 
+#export COMPSET="B_1850-2000_CN_GLC"  # All active components, with CISM glacier model, with CN (Carbon Nitrogen) in CLM
+#export COMPSET="F_2000_CAM5"              # Active cam and clm, prescribed ocn and sea-ice, present day
+#export COMPSET="I_2000"               # Active land model, driven with Qian re-analysis data
+export COMPSET="FC5"               # Fully active cam and ice with som ocean, present day
+#export COMPSET="FC5"
+
+# set modified CAM code
+option_code="T"
+#option_code="F"
+#CODEDIR="/home/yihsuan/work/research/tamu_MC6_Opt_Scat-rrtmg_lw_cesm111/src.cam/\$casename"
+#CODEDIR="/home/yihsuan/work/research/Sahara_Sahel-surf_LW_emis-cesm111/src.cam/F2000-standard"
+CODEDIR="/glade/u/home/yihsuan/work/research/cesm111-emis_MC6_IceScat/src.cam/FC5_rrtmg_standard_mc6_rtr2_noScat"
+
+# stop options
+stop_option="ndays"
+#stop_option="nhours"
+#stop_option="nmonths"
+#stop_option="nyears"
+#stop_option="nsteps"
+
+# stop_n
+stop_n=5
+
+# output every 3-hour and a file contains one day
+nhtfrq=-3 
+mfilt=8
+fincl1='fincl1 = "HR:A","SST:A","FLDSC:A"'
+
+#flux_node="climate_flux"
+#flux_node="xianglei_flux"
+flux_node="UMIC0056"  # project code for Cheyenne
+
+# parameters in PBS script
+#num_cpu=4      # number of processors
+#num_node=1      # number of nodes
+#num_memory=3000 # number of memory, units: mb
+
+#dd=00   # walltime day
+hh=12   # walltime hour
+mm=00   # walltime minute
+
+set -x
+
+#################
+# program start
+#################
+
+#------------
+# check part
+#------------
+
+# check required directories
+if [ ! -d \$CCSMROOT ]; then
+  echo "ERROR: CESM root directory [\$CCSMROOT] does not exist !!"
+  echo "program stop"
+  exit 1
+
+#elif [ ! -d \$DIN_LOC_ROOT ]; then
+#  echo "ERROR: CESM data directory, csmdata, [\$DIN_LOC_ROOT] does not exist !!"
+#  echo "program stop"
+#  exit 1
+
+elif [ ! -d \$RUNDIR ]; then 
+  echo "ERROR: run directory [\$RUNDIR] does not exist!"
+  echo "program stop"
+  exit 1
+
+elif [ -d \$CASEROOT ]; then 
+  echo "ERROR: Case root [\$CASEROOT] does exist !!"
+  echo "please set a new name"
+  echo "program stop"
+  exit 1
+
+elif [ ! -d \$RESTPATH_REFCASE ]; then 
+  echo "ERROR: Restart file path [\$RESTPATH_REFCASE] does not exist !!"
+  echo "please set a new name"
+  echo "program stop"
+  exit 1
+
+fi
+
+# check option for modifed codes
+if [ \$option_code ] && [ \$option_code == "T" ]; then
+  if [ ! -d \$CODEDIR ]; then
+    echo "ERROR: user modified code directory [\$CODEDIR] does not exist !!"
+    echo "program stop"
+    exit 1
+  fi
+fi
+
+# get this script name
+name0=\$0
+pp1=\`echo \$name0 | grep ^/ > /dev/null ; echo \$?\`
+
+if [ \$pp1 -eq 1 ]; then
+  path1=\`pwd\`
+  name1=\${0##*/}
+  script_name="\$path1/\$name1"
+
+elif [ \$pp1 -eq 0 ]; then 
+  script_name=\$name0
+
+else
+  echo "ERROR: fail to retrive this script name"
+  echo "program stop"
+  exit 1
+fi
+
+#--------------------
+# create a new case
+#---------------------
+
+# CREATE CASE (highest level configuration):
+cd \$CCSMROOT/scripts || exit 101
+
+# create new case
+./create_newcase -case \$CASEROOT \\
+    -mach \$MACH \\
+    -compset \$COMPSET \\
+    -res \$RES || exit 105
+
+#--------------------
+# user modification
+#--------------------
+
+cd \$CASEROOT || exit 200
+
+# manual change to rrtmg
+#sed -i "s/-dyn/-rad rrtmg -dyn/g" Buildconf/cam.buildnml.csh || exit 201
+
+#*** user-modified source code ***
+if [ \$option_code ] && [ \$option_code == "T" ]; then
+  #/bin/cp ~/cesm1/SourceMods/SurfaceAlbedoMod.F90 \$CASEROOT/SourceMods/src.clm/ || 203
+  #cp -i \$CODEDIR/src.clm/* \$CASEROOT/SourceMods/src.clm/ && echo "Done. copy [\$CODEDIR] to src.clm" || exit 203
+  cp -i \$CODEDIR/* \$CASEROOT/SourceMods/src.cam/ && echo "Done. copy [\$CODEDIR] to src.cam" || exit 203
+fi 
+
+#*** setup namelist ***
+# cat > \$CASEROOT/user_nl_clm << EOF
+#fsnowoptics = '/scratch/climate_flux/flanner/optprops/snicar_optics_5bnd_ASH_c110608.nc'
+#EOF
+
+#-----------------
+# configure case
+#-----------------
+
+# CONFIGURE CASE:
+
+cd \$CASEROOT
+
+./xmlchange RUN_TYPE=branch             || exit 301
+./xmlchange RUN_REFCASE=\$RUN_REFCASE    || exit 301
+./xmlchange RUN_REFDATE=\$RUN_REFDATE    || exit 301
+
+# CONFIGURE MODEL WITH OPTIONS SET ABOVE:
+./cesm_setup && echo "Done. CESM setup" || exit 301
+
+# user modifed 
+#if [ \$option_code ] && [ \$option_code == "T" ]; then
+#  ln -s \$emis_surf \$CASEROOT/run/surface_emissivity_1.9x2.5_RRTMG.nc || exit 205 
+#fi 
+
+  # copy user-defined code 
+  cp \$RESTPATH_REFCASE/* \$CASEROOT_RUN && echo "Done. copy restart files from [\$RESTPATH_REFCASE] to [\$CASEROOT_RUN]" || exit 207
+
+  # write cam namelist
+  cat > \$CASEROOT/user_nl_cam << EOF1 
+&cam_inparm
+nhtfrq = \$nhtfrq
+mfilt  = \$mfilt
+\$fincl1
+EOF1
+
+#*** These namelist is okay for startup run, but will cause branch run fail ***
+#&aerodep_flx_nl
+# prescribed_ghg_type             = 'FIXED'
+# ext_frc_type                    = 'FIXED'
+# prescribed_volcaero_type        = 'FIXED'
+# srf_emis_type                   = 'FIXED'
+#/
+#cat > \$CASEROOT/user_nl_cice << EOF1 
+#&setup_nml
+# ice_ic = 'default'
+#EOF1
+
+# BUILD THE MODEL
+./\$CASE.build && echo "Done. Build CESM" || exit 303
+
+#-----------------
+# make PBS script
+#-----------------
+
+## change queue/account name
+sed -i "s/.*PBS -A.*/#PBS -A \$flux_node/g" \$CASE.run && echo "Done. change qsub account" || exit 305
+
+### change wall time 
+sed -i "s/walltime=.*/walltime=\${hh}:\${mm}:00/g" \$CASE.run && echo "Done. change wall time" || exit 305
+
+nn1=\`grep -n PBS \$CASE.run | tail -1 | cut -d ':' -f 1\`
+sed -i "\${nn1}a #PBS -M \$email" \$CASE.run || exit 305
+
+sed -i "\${nn1}a #PBS -m abe" \$CASE.run || exit 305
+
+### change PBS used node
+#sed -i "s/PBS -l nodes.*/PBS -l nodes=\${num_node}:ppn=\${num_cpu},pmem=\${num_memory}mb/g" \$CASE.run && echo "Done. change PBS parameters" || exit 305
+
+#----------------------
+# submit job & backup
+#----------------------
+
+# copy this script to CASEROOT for future reference
+cp -i \$script_name "\$CASEROOT/00-run_script-\$date.sh" && echo "Done. copy running script to CASEROOT" || exit 905
+
+temp1="\$CASEROOT/00ddhhaaa.temp.\$date"
+qsub \$CASE.run > \$temp1 && echo "Done. submit [\$cesm_exe]" || exit 901
+
+# backup qsub id 
+jobid=\`cat \$temp1 | sed -n 1p | cut -d '.' -f 1\`
+mv \$temp1 \$CASEROOT/01-jobid_\$jobid-\$date || exit 903
+
+exit 0
+
+EOF
+#*** case: cesm-branch-run end ***
+
+#*** case: "cesm-restart-run" start ***
+elif [ $casename_work -a $casename_work == "cesm-restart-run" ]; then
+cat >> $bash_name << EOF
+
+#**********************
+#  Description:
+#    restart CESM simulations
+#**********************
+
+################
+# user setting
+################
+
+### NCAR Cheyenne setup ###
+# cesmroot="\$wrkdir/\$casename"
+wrkdir="/glade/scratch/yihsuan"
+casenames=(\\
+          f1 \\
+          f2
+          )
+flux_node="UMIC0056"  # project code for Cheyenne
+
+# stop options
+stop_option="ndays"
+#stop_option="nhours"
+#stop_option="nmonths"
+#stop_option="nyears"
+
+# stop_n
+stop_n=5
+#stop_n=2
+#stop_n=3
+#stop_n=8
+
+# wall time
+hh=12   # walltime hour
+mm=00   # walltime minute
+
+
+##################
+# program start
+##################
+
+temp=\`date +%Y%m%d%H%M%S\`
+date=\`date +%Y%m%d_%H%M%S\`
+
+#set -x
+
+for casename in \${casenames[@]}
+do
+
+  cesm_dir="\$wrkdir/\$casename"
+  cesm_exe="\$cesm_dir/\$casename.run"
+ 
+  # check part
+  if [ ! -d \$cesm_dir ] || [ ! \$cesm_dir ] ; then
+    echo "ERROR: cesm dir [\$cesm_dir] does not exist!"
+    echo "program stop"
+    exit 1
+  
+  elif [ ! -x \$cesm_exe ] || [ ! \$cesm_exe ] ; then
+    echo "ERROR: cesm run script [\$cesm_exe] does not exist!"
+    echo "program stop"
+    exit 1
+  
+  fi
+  
+  # echo
+  echo "CESM casename : [\$casename]"
+  echo "CESM run dir  : [\$cesm_dir]"
+  echo ""
+  
+  # move to cesm_dir
+  cd \$cesm_dir || exit 1
+  
+  #---------  
+  # change
+  #---------  
+  
+  ./xmlchange -file env_run.xml -id CONTINUE_RUN -val TRUE && \\
+    echo "Done. Change CONTINUE_RUN to [TRUE]" || exit 101
+  
+  ./xmlchange -file env_run.xml -id STOP_OPTION -val \$stop_option && \\
+    echo "Done. Change STOP_OPTION  to [\$stop_option]" || exit 101
+  
+  ./xmlchange -file env_run.xml -id STOP_N -val \$stop_n && \\
+    echo "Done. Change STOP_N       to [\$stop_n]     " || exit 101
+  
+  ## change queue/account name
+  sed -i "s/.*PBS -A.*/#PBS -A \$flux_node/g" \$casename.run && echo "Done. change qsub account" || exit 305
+  
+  ### change wall time 
+  sed -i "s/walltime=.*/walltime=\${hh}:\${mm}:00/g" \$casename.run && echo "Done. change wall time" || exit 305
+  
+  #------------
+  # submit job 
+  #------------
+  
+  temp1="\$cesm_dir/00ddhhaaa.temp.\$temp"
+  qsub \$cesm_exe > \$temp1 && echo "Done. submit [\$cesm_exe]" || exit 901
+  
+  jobid=\`cat \$temp1 | sed -n 1p | cut -d '.' -f 1\`
+  mv \$temp1 \$cesm_dir/00-jobid_\$jobid-\$date || exit 903
+
+done # end loop of casenames
+
+exit 0
+
+EOF
+#*** case: cesm-restart-run end ***
+
+#*** case: "cesm-output2series" start ***
+elif [ $casename_work -a $casename_work == "cesm-output2series" ]; then
+cat >> $bash_name << EOF
+#**********************
+# Description:
+#   Merge CESM outputs into a file using nco command
+#**********************
+
+# NCO command
+#nco_command="ncks -d lat,66.5,90."
+#nco_command="ncks -v"
+nco_command="ncks -v 
+date,datesec,\\
+hyai,hybi,hyam,hybm,P0,PS,\\
+T,TS,TREFHT,TMQ,Q,U,V,OMEGA,PRECT,PRECC,PRECL,RELHUM,U10,\\
+FLUT,FLUTC,FLDS,FLDSC,FLNS,FLNSC,LWCF,\\
+FSNTOA,FSNTOAC,FSDS,FSDSC,FSNS,FSNSC,SWCF,\\
+CLDLIQ,CLDICE,CLOUD,CLDTOT,CLDHGH,CLDMED,CLDLOW,TGCLDLWP,TGCLDIWP,\\
+LHFLX,SHFLX,ICEFRAC" # common vars in CESM
+
+# file_out= \${file_out_start}\${casename}\${file_out_middle}\${file_out_end}.nc
+file_out_start="xx-"     # resulting filename start with this
+file_out_end="common_vars"      # resulting filename end with this
+file_out_middle=".cam.h0.0009-01-01_0009-01-05-"
+
+casenames=(\\
+           "m01_branch-cesm111-FC5-mc6_rtr2" \\
+           "m02_branch-cesm111-FC5-mc6_rtr2_noScat" \\
+           )
+
+#server="flux"
+server="Cheyenne"
+
+# wroking directory
+wrkdir="./"
+
+#set -x
+
+###########################
+# program initialization
+###########################
+
+ncase=\${#casenames[@]}
+
+# print out information
+echo "========================="
+echo "Merge CESM output into a file"
+echo "NCO command: [\$nco_command]"
+echo "========================="
+
+# loop for every case
+for ((cc=0; cc<\$ncase; cc=cc+1))
+do
+  casename=\${casenames[\$cc]}
+  cc_plus=\$((\$cc+1))
+
+  echo ""
+  echo "--------------------------------"
+  echo \$cc_plus/\$ncase, [\$casename]
+  echo "--------------------------------"
+  echo ""
+  
+  # check server
+  if [ \$server -a \$server == "Cheyenne" ]; then
+    # cesm datadir @ Cheyenne
+    datadir="/glade/scratch/yihsuan/archive/\$casename/atm/hist"
+  elif [ \$server -a \$server == "flux" ]; then
+    # cesm datadir @ flux
+    datadir="/scratch/climate_flux/yihsuan/\$casename/run/"
+  else
+    echo "ERROR: server [\$server] is not supported"
+    echo "program stop"
+    exit 1
+  fi
+  
+  # input file_head
+  file_head="\$casename.cam.h0"
+  
+  # output file 
+  file_out=\${file_out_start}\${casename}\${file_out_middle}\${file_out_end}.nc
+  
+  ##################
+  # program start
+  ##################
+  
+  
+  temp=\`date +%Y%m%d%H%M%S\`
+  ftemp="\$wrkdir/\$temp.\${file_head}"
+  ftemp01=\$ftemp.temp01
+  
+  # get files in datadir
+  ls \$datadir/\${file_head}* > \$ftemp01 || exit 1
+  
+  # check with user
+  echo "  process files"
+  echo "---------------------------"
+  nl \$ftemp01
+  echo "---------------------------"
+  echo""
+  #read -p "Is is correct? (y/n)  " choice
+  #echo " "
+  #if [ ! \$choice ] || [ ! \$choice == "y" ]; then
+  #  echo "program stop"
+  #  exit 1
+  #fi
+  
+  # get file number
+  num_files=\`wc -l \$ftemp01 | cut -d ' ' -f 1\`
+  files=""
+  
+  # process each file
+  for((i=1; i<=\$num_files; i=i+1))
+  do
+    file1=\`cat \$ftemp01 | sed -n \$i'p'\`
+    #echo \$i,\$file1
+    file2=\$ftemp-\$i.nc
+    \$nco_command \$file1 \$file2 && echo "Done. \$i/\$num_files [\$file1]" || exit 1
+  
+    files="\$files \$file2"
+  done
+
+  echo ""
+  ncrcat \$files \$file_out && echo "Done. create [\$file_out]" || exit 5
+  rm \${ftemp}* || exit 9
+
+done # done of ncase
+
+
+exit 0
+
+EOF
+#*** case: cesm-output2series end ***
+
+#*** case: "cesm-monthly2climo" start ***
+elif [ $casename_work -a $casename_work == "cesm-monthly2climo" ]; then
+cat >> $bash_name << EOF
+
+#**********************
+# Description:
+#   convert CESM monthly outputs to climatological seasonal mean, climatological monthly mean, or climatologicalh monthly output
+#**********************
+
+casenames=(\\
+           "" \\
+           "" \\
+           )
+
+#server="flux"
+server="Cheyenne"
+
+# start and end years
+yyyy_start=1
+yyyy_end=2
+
+filehead_start="yy-"
+
+#option_m2seasonal="monthly2seasonal"
+#seasonal_strings=("DJF" "MAM" "JJA" "SON" "ANN")  # choose seasaonal average
+#seasonal_strings=("ANN")
+
+#option_m2month="monthly2month"
+#month_number=(1 2 3 4 5 6 7 8 9 10 11 12)  # from 1-12, 1 means Jan, 2 means Feb and so on
+#month_number=(1 2 6 7)  # from 1-12, 1 means Jan, 2 means Feb and so on
+ 
+#option_m2monthly="monthly2monthly"
+
+#option_m2series="monthly2series"
+#ncks_command is only applicable for monthly2series
+ncks_command="ncks -v TS,TREFHT,FLUT,FLDS,FSNTOA"
+#ncks_command="$ncks_command_cesm" # common vars in CESM
+
+# wroking directory
+wrkdir="./"
+
+
+###########################
+# program initialization
+###########################
+
+ncase=\${#casenames[@]}
+temp=\`date +%Y%m%d%H%M%S\`
+month_strings=("01Jan" "02Feb" "03Mar" "04Apr" "05May" "06Jun" "07Jul" "08Aug" "09Sep" "10Oct" "11Nov" "12Dec")
+
+for ((cc=0; cc<\$ncase; cc=cc+1))
+do
+  casename=\${casenames[\$cc]}
+  cc_plus=\$((\$cc+1))
+
+  echo "--------------------------------"
+  echo \$cc_plus/\$ncase, [\$casename]
+  echo "--------------------------------"
+  
+  # check server
+  if [ \$server -a \$server == "Cheyenne" ]; then
+    # cesm datadir @ Cheyenne
+    datadir="/glade/scratch/yihsuan/archive/\$casename/atm/hist"
+  elif [ \$server -a \$server == "flux" ]; then
+    # cesm datadir @ flux
+    datadir="/scratch/climate_flux/yihsuan/\$casename/run/"
+  else
+    echo "ERROR: server [\$server] is not supported"
+    echo "program stop"
+    exit 1
+  fi
+
+  # check whether datadir exist
+  if [ ! \$datadir ] || [ ! -d \$datadir ]; then
+    echo "ERROR: data dir [\$datadir] does not exist"
+    echo "rpgram stop"
+    exit 1
+  fi
+
+  # input file_head
+  file_head="\$casename.cam.h0"
+  fileout_head="\${filehead_start}\${file_head}"
+  ftemp="\$wrkdir/\$temp.\${file_head}"
+  touch \$ftemp
+  
+  yy_start_string=\`printf %2.2i \$yyyy_start\`
+  yy_end_string=\`printf %2.2i \$yyyy_end\`
+
+  #-----------------------------
+  # option = monthly2month
+  #-----------------------------
+  if [ \$option_m2month -a \$option_m2month == "monthly2month" ]; then   
+    echo ""
+    echo "======================="
+    echo "cesm-monthly2month"
+    echo "======================="
+    echo ""
+
+    for month0 in \${month_number[@]}
+    do
+      month1=\$((\$month0-1))
+      files_month1=""
+      mm_string=\${month_strings[\$month1]}
+      file_out=\$wrkdir/\${fileout_head}."yy"\${yy_start_string}_\${yy_end_string}-climo_\${mm_string}.nc
+    
+      for ((yy1=\$yyyy_start; yy1<=\$yyyy_end; yy1=yy1+1))
+      do
+        yy=\`printf %4.4i \$yy1\`
+    
+          mm1=\`printf "%2.2i" \$month0\`
+          file1="\$datadir/\${file_head}.\$yy-\$mm1.nc"
+          #echo \$file1
+      
+          if [ -f \$file1 ]; then
+            files_month1="\$files_month1 \$file1"
+          else
+            echo "ERROR: [\$file1] does not exist"
+            exit 1
+          fi
+      done  # end do of year
+
+      ncrcat \$files_month1 \$file_out \\
+        && echo "Done. create [\$file_out]" || exit 3
+    done
+
+  fi # end if of monthly2month
+
+  #-----------------------------
+  # option = monthly2series
+  #-----------------------------
+  if [ \$option_m2series -a \$option_m2series == "monthly2series" ]; then   
+    echo ""
+    echo "======================="
+    echo "cesm-monthly2series"
+    echo "======================="
+    echo ""
+    file_series=\$wrkdir/\${fileout_head}."yy"\${yy_start_string}_\${yy_end_string}-climo_series.nc
+    files=""
+    count=1
+    
+    # get variables from each file
+    for ((yy1=\$yyyy_start; yy1<=\$yyyy_end; yy1=yy1+1))
+    do
+      yy=\`printf %4.4i \$yy1\`
+    
+      for ((m=1; m<=12; m=m+1))
+      do
+        mm1=\`printf "%2.2i" \$m\`
+    
+        file1="\$datadir/\${file_head}.\$yy-\$mm1.nc"
+        #echo \$file1
+    
+        file2="\$wrkdir/\${ftemp}.\$yy-\$mm1.nc"
+    
+        if [ -f \$file1 ]; then
+          files="\$files \$file2"
+          \$ncks_command \$file1 \$file2 \\
+            && echo "Done. \$count: [\$ncks_command \$file1]"
+          count=\$((\$count+1))
+        else
+          echo "ERROR: [\$file1] does not exist"
+          exit 1
+        fi
+      done
+    done
+    
+    # merge to a file
+    echo ""
+    ncrcat -h \$files \$file_series \\
+      && echo "Done. create [\$file_series]"
+  fi  # end if of monthly2series
+
+  #-----------------------------
+  # option = monthly2monthly
+  #-----------------------------
+  if [ \$option_m2monthly -a \$option_m2monthly == "monthly2monthly" ]; then   
+    echo ""
+    echo "======================="
+    echo "cesm-monthly2monthly"
+    echo "======================="
+    echo ""
+    files_month=""
+    file_allmonth=\$wrkdir/\${fileout_head}."yy"\${yy_start_string}_\${yy_end_string}-climo_monthly.nc
+    
+    for ((m=1; m<=12; m=m+1))
+    do
+      mm1=\`printf "%2.2i" \$m\`
+      files=""
+      for ((yy1=\$yyyy_start; yy1<=\$yyyy_end; yy1=yy1+1))
+      do
+    
+        yy=\`printf %4.4i \$yy1\`
+        file1="\$datadir/\${file_head}.\$yy-\$mm1.nc"
+        #echo \$file1
+    
+        if [ -f \$file1 ]; then
+          files="\$files \$file1"
+        else
+          echo "ERROR: [\$file1] does not exist"
+          exit 1
+        fi
+      done
+    
+      #echo \$m,\$files
+      file2="\${ftemp}_month\$mm1.nc"
+      #echo \$file2
+    
+      echo "process files [\$files]"
+      echo ""
+      ncra \$files \$file2 && echo "Done. month [\$mm1], file [\$file2]" || exit 1
+      echo ""
+      files_month="\$files_month \$file2"
+    
+      #echo \$m,\$files
+      #echo ""
+    done
+    
+    # merge all month files into a file_allmonth
+    echo ""
+    ncrcat \$files_month \$file_allmonth && echo "Done. ncrcat [\$files_month] to [\$file_allmonth]" || exit 1
+  fi # end if of monthly2monthly
+
+  #-----------------------------
+  # option = monthly2seasonal
+  #-----------------------------
+  if [ \$option_m2seasonal -a \$option_m2seasonal == "monthly2seasonal" ]; then   
+    echo ""
+    echo "======================="
+    echo "cesm-monthly2seasonal"
+    echo "======================="
+    echo ""
+
+    for season1 in \${seasonal_strings[@]}
+    #for season1 in DJF #\${seasonal_strings[@]}
+    do
+      echo ""
+      echo "create climatological [\$season1] from year [\${yy_start_string}] to [\${yy_end_string}] ..."
+      file_out=\$wrkdir/\${fileout_head}."yy"\${yy_start_string}_\${yy_end_string}-climo_\${season1}.nc
+  
+      files_season1=""
+      if [ \$season1 == "DJF" ]; then
+        month_num=(12 1 2)
+      elif [ \$season1 == "MAM" ]; then
+        month_num=(3 4 5)
+      elif [ \$season1 == "JJA" ]; then
+        month_num=(6 7 8)
+      elif [ \$season1 == "SON" ]; then
+        month_num=(9 10 11)
+      elif [ \$season1 == "ANN" ]; then
+        month_num=(1 2 3 4 5 6 7 8 9 10 11 12)
+      fi 
+    
+      for ((yy1=\$yyyy_start; yy1<=\$yyyy_end; yy1=yy1+1))
+      do
+        yy=\`printf %4.4i \$yy1\`
+        files_month1=""
+    
+        for month1 in \${month_num[@]}
+           do
+          mm1=\`printf "%2.2i" \$month1\`
+          file1="\$datadir/\${file_head}.\$yy-\$mm1.nc"
+          #echo \$file1
+      
+          if [ -f \$file1 ]; then
+            files_month1="\$files_month1 \$file1"
+          else
+            echo "ERROR: [\$file1] does not exist"
+            exit 1
+          fi
+        done  # end of of month
+  
+        file2=\$ftemp-\$season1-\$yy.nc
+        #echo \$files_month1
+        ncra \$files_month1 \$file2 || exit 1
+        if [ -f \$file2 ]; then
+          files_season1="\$files_season1 \$file2"
+        else
+          echo "ERROR: [\$file2] does not exist"
+          exit 1
+        fi      
+  
+      done  # end do of year
+  
+      #echo \$files_season1 
+      ncrcat \$files_season1 \$file_out \\
+        && echo "  Done. create [\$file_out]" || exit 3
+  
+    done # end do of season
+  fi # end if of option = monthly2seasonal
+
+  rm \$ftemp*
+done  # end do of case
+
+
+exit 0
+
+EOF
+#*** case: cesm-monthly2climo end ***
+
+#*** case: "cesm-backup-rundir" start ***
+elif [ $casename_work -a $casename_work == "cesm-backup-rundir" ]; then
+cat >> $bash_name << EOF
+
+#**********************
+# Description:
+#   copy CESM files to another folder as a backup 
+#**********************
+
+casenames=(\\
+           "" \\
+           "" \\
+          )
+
+#server="flux"
+server="Cheyenne"
+
+#remove_files=("bld" "run")  # these files would be removed in the new folder
+
+###########################
+# program initialization
+###########################
+
+ncase=\${#casenames[@]}
+date=\`date +%Y%m%d_backup\`
+#date=\`date +%Y%m%d%H%M%S\`
+
+for ((cc=0; cc<\$ncase; cc=cc+1))
+do
+  casename=\${casenames[\$cc]}
+  cc_plus=\$((\$cc+1))
+
+  echo ""
+  echo "--------------------------------"
+  echo \$cc_plus/\$ncase, [\$casename]
+  echo "--------------------------------"
+  echo ""
+  
+  # check server
+  if [ \$server -a \$server == "Cheyenne" ]; then
+    # cesm datadir @ Cheyenne
+    data_from="/glade/scratch/yihsuan/\$casename"
+    data_to="/glade/scratch/yihsuan/archive/\$casename/setting/\$date"
+    #data_to="/glade/scratch/yihsuan/zz1/\$casename/setting/\$date"
+
+  elif [ \$server -a \$server == "flux" ]; then
+    # cesm datadir @ flux
+    datadir="/scratch/climate_flux/yihsuan/\$casename/run/"
+  else
+    echo "ERROR: server [\$server] is not supported"
+    echo "program stop"
+    exit 1
+  fi
+
+  # check whether datadir exist
+  if [ ! \$data_from ] || [ ! -d \$data_from ]; then
+    echo "ERROR: data dir [\$data_from] does not exist"
+    echo "rpgram stop"
+    exit 1
+  fi
+  #echo \$data_to
+
+  if [ ! -d \$data_to ]; then
+    mkdir -p \$data_to || exit 1
+  fi
+
+  # copy files
+  echo "copy files from [\$data_from] to [\$data_to] ..."
+  cp -r \$data_from/* \$data_to \\
+    && echo "  Done. copy [\$data_from] to [\$data_to]" || exit 3
+
+  # remove centain files
+  #for file1 in \${remove_files[@]}
+  #do
+  #  file_dd=\$data_to/\$file1
+  #  if [ -d \$file_dd ] || [ -f \$file_dd ]; then
+  #    rm -r \$file_dd \\
+  #      && echo "Done. remove [\$file_dd]"
+  #    #echo \$file_dd
+  #  fi  
+  #done
+done # end do of case
+
+
+
+EOF
+#*** case: cesm-backup-rundir end ***
+
+#*** case: "png2html-ignorant_cesm" start ***
+elif [ $casename_work -a $casename_work == "png2html-ignorant_cesm" ]; then
+cat >> $bash_name << EOF
+#**********************
+#  Description:
+#    create a html than contains png files of CESM plots from ignorant function
+#**********************
+
+###################
+# user setting
+###################
+#set -x
+
+# option type
+option_type="ignorant_cesm"
+
+# folders containing .png files
+pngdirs=(\\
+         "../png" \\
+         )
+
+# file head of generated html files
+filename_out="gg1"
+
+# title on every html file
+title="CESM"
+
+# work directory
+wrkdir="./"
+
+# file name of the master html file
+fileout_master="\${filename_out}-index-master.html"
+
+# main page
+mainpage='http://www-personal.umich.edu/~yihsuan/cesm111-E2000-ScatNnoScat_results.html'
+
+# temp variable
+temp=\`date +%Y%m%d%H%M%S\`
+
+#############################################
+# function to convert CESM convention names
+#############################################
+
+#*** convert cesm variable names ***
+function convert_cesm_var {
+  local varname_in=\$1
+  if [ \$varname_in == "sldjflskdjflsdjflkas" ]; then
+    varname_out="sdkfjlsdjflas"
+  elif [ \$varname_in == "CLDICE" ]; then
+    varname_out="Grid-box average ice"
+  elif [ \$varname_in == "CLDLIQ" ]; then
+    varname_out="Grid-box average liquid"
+  elif [ \$varname_in == "CLOUD" ]; then
+    varname_out="Cloud fraction"
+  elif [ \$varname_in == "CWAT" ]; then
+    varname_out="Cloud ice+liquid"
+  elif [ \$varname_in == "EKE" ]; then
+    varname_out="Transient eddy KE"
+  elif [ \$varname_in == "EKE_850" ]; then
+    varname_out="850hPa eddy KE"
+  elif [ \$varname_in == "ICIMR" ]; then
+    varname_out="In-Cloud ice"
+  elif [ \$varname_in == "ICWMR" ]; then
+    varname_out="In-Cloud liquid"
+  elif [ \$varname_in == "OBSTAR_TBSTAR" ]; then
+    varname_out="Stat eddy vert heat"
+  elif [ \$varname_in == "OMEGA" ]; then
+    varname_out="Vertical pressure velocity"
+  elif [ \$varname_in == "OPTP_BAR" ]; then
+    varname_out="Transient eddy vert heat"
+  elif [ \$varname_in == "QRL" ]; then
+    varname_out="LW heating rate"
+  elif [ \$varname_in == "QRS" ]; then
+    varname_out="SW heating rate"
+  elif [ \$varname_in == "RELHUM" ]; then
+    varname_out="Relative humidity"
+  elif [ \$varname_in == "SHUM" ]; then
+    varname_out="Specific humidity"
+  elif [ \$varname_in == "TDH" ]; then
+    varname_out="Total diabatic heating"
+  elif [ \$varname_in == "TDM" ]; then
+    varname_out="Toal diabatic moistening"
+  elif [ \$varname_in == "T" ]; then
+    varname_out="Temperature"
+  elif [ \$varname_in == "U" ]; then
+    varname_out="Zonal wind"
+  elif [ \$varname_in == "VBSTAR_QBSTAR" ]; then
+    varname_out="Stat eddy moisture"
+  elif [ \$varname_in == "VBSTAR_TBSTAR" ]; then
+    varname_out="Stat eddy heat"
+  elif [ \$varname_in == "VBSTAR_UBSTAR" ]; then
+    varname_out="Stationary eddy momentum"
+  elif [ \$varname_in == "VPQP_BAR" ]; then
+    varname_out="Transient eddy moisture"
+  elif [ \$varname_in == "VPTP_BAR" ]; then
+    varname_out="Transient eddy heat"
+  elif [ \$varname_in == "VPUP_BAR" ]; then
+    varname_out="Transient eddy momentum"
+  elif [ \$varname_in == "VQ" ]; then
+    varname_out="Meridional water transport"
+  elif [ \$varname_in == "VT" ]; then
+    varname_out="Meridional heat transport"
+  elif [ \$varname_in == "ZMMSF" ]; then
+    varname_out="Merid stram function"
+  elif [ \$varname_in == "ALBEDOC" ]; then
+    varname_out="TOA clear-sky albedo"
+  elif [ \$varname_in == "ALBEDO" ]; then
+    varname_out="TOA albedo"
+  elif [ \$varname_in == "ALBSURF" ]; then
+    varname_out="Surface albedo"
+  elif [ \$varname_in == "CLDHGH" ]; then
+    varname_out="High-level cloud"
+  elif [ \$varname_in == "CLDLOW" ]; then
+    varname_out="Low-level cloud"
+  elif [ \$varname_in == "CLDMED" ]; then
+    varname_out="Mid-level cloud"
+  elif [ \$varname_in == "CLDTOT" ]; then
+    varname_out="Total cloud"
+  elif [ \$varname_in == "FLDSC" ]; then
+    varname_out="Surf clear-sky down LW"
+  elif [ \$varname_in == "FLDS" ]; then
+    varname_out="Surf downwelling LW"
+  elif [ \$varname_in == "FLNSC" ]; then
+    varname_out="Surf clear-sky net LW"
+  elif [ \$varname_in == "FLNS" ]; then
+    varname_out="Surf net LW flux"
+  elif [ \$varname_in == "FLNT" ]; then
+    varname_out="TOA net LW flux"
+  elif [ \$varname_in == "FSDSC" ]; then
+    varname_out="Clear-sky surf down SW"
+  elif [ \$varname_in == "FSDS" ]; then
+    varname_out="Surf downwelling SW"
+  elif [ \$varname_in == "FSNSC" ]; then
+    varname_out="Surf clear-sky net SW"
+  elif [ \$varname_in == "FSNS" ]; then
+    varname_out="Surf new SW flux"
+  elif [ \$varname_in == "FSNT" ]; then
+    varname_out="TOM net SW flux"
+  elif [ \$varname_in == "ICEFRAC" ]; then
+    varname_out="Sea ice concentraion"
+  elif [ \$varname_in == "PRECST" ]; then
+    varname_out="Snowfall rate"
+  elif [ \$varname_in == "PRECT" ]; then
+    varname_out="Precipitation rate"
+  elif [ \$varname_in == "PSL" ]; then
+    varname_out="Sea-level pressure"
+  elif [ \$varname_in == "PS" ]; then
+    varname_out="surface pressure"
+  elif [ \$varname_in == "SNOWHICE" ]; then
+    varname_out="Seaice snow depth water quiv"
+  elif [ \$varname_in == "SNOWHLND" ]; then
+    varname_out="Land snow depth water quiv"
+  elif [ \$varname_in == "STRESS_MAG" ]; then
+    varname_out="Surface stress magnitude"
+  elif [ \$varname_in == "TGCLDIWP" ]; then
+    varname_out="Total grid-box cloud IWP"
+  elif [ \$varname_in == "TGCLDLWP" ]; then
+    varname_out="Total grid-box cloud LWP"
+  elif [ \$varname_in == "TS" ]; then
+    varname_out="Surf Temp (radiative)"
+  elif [ \$varname_in == "WIND_MAG_LEV1" ]; then
+    varname_out="First model level wind"
+  elif [ \$varname_in == "Z3_500" ]; then
+    varname_out="500hPa geop height"
+  elif [ \$varname_in == "EP" ]; then
+    varname_out="evap-precip"
+  elif [ \$varname_in == "FLNTC" ]; then
+    varname_out="TOM clear-sky net LW"
+  elif [ \$varname_in == "FSNTC" ]; then
+    varname_out="TOM clear-sky net SW"
+  elif [ \$varname_in == "LHFLX" ]; then
+    varname_out="Surf latent heat flux"
+  elif [ \$varname_in == "LWCF" ]; then
+    varname_out="TOM LW cloud forcing"
+  elif [ \$varname_in == "LWCF_SURF" ]; then
+    varname_out="Surf LW Cloud Forcing"
+  elif [ \$varname_in == "PBLH" ]; then
+    varname_out="Planet bundry layer hgt"
+  elif [ \$varname_in == "PRECT_LAND" ]; then
+    varname_out="Precipitation rate over land"
+  elif [ \$varname_in == "PREH2O" ]; then
+    varname_out="Precipitable water"
+  elif [ \$varname_in == "QFLX" ]; then
+    varname_out="Surf water flux"
+  elif [ \$varname_in == "RESSURF" ]; then
+    varname_out="Residual surf energy"
+  elif [ \$varname_in == "RESTOM" ]; then
+    varname_out="TOM residual energy"
+  elif [ \$varname_in == "SHFLX" ]; then
+    varname_out="Surf sensible heat"
+  elif [ \$varname_in == "SOLIN" ]; then
+    varname_out="Insolation"
+  elif [ \$varname_in == "SWCF" ]; then
+    varname_out="TOM SW cloud forcing"
+  elif [ \$varname_in == "SWCF_SURF" ]; then
+    varname_out="Surf SW Cloud Forcing"
+  elif [ \$varname_in == "TAUX_OCEAN" ]; then
+    varname_out="Surface zonal stress"
+  elif [ \$varname_in == "TREFHT" ]; then
+    varname_out="2-meter Air Temp"
+  elif [ \$varname_in == "TREFHT_LAND" ]; then
+    varname_out="2-meter Air Temp over land"
+  elif [ \$varname_in == "TS_LAND" ]; then
+    varname_out="Surface Temp (rad) over land"
+  elif [ \$varname_in == "UBSTAR_QBSTAR" ]; then
+    varname_out="Stat eddy moisture"
+  elif [ \$varname_in == "UBSTAR_TBSTAR" ]; then
+    varname_out="Stat eddy heat"
+  elif [ \$varname_in == "U_200" ]; then
+    varname_out="200hPa zonal wind"
+  elif [ \$varname_in == "CHI_200" ]; then
+    varname_out="200hPa vel potential"
+  elif [ \$varname_in == "EVAP" ]; then
+    varname_out="Evaporation rate"
+  elif [ \$varname_in == "FLUS" ]; then
+    varname_out="Surf upward LW flux"
+  elif [ \$varname_in == "FLUT" ]; then
+    varname_out="Outgoing LW radiation"
+  elif [ \$varname_in == "FLUTC" ]; then
+    varname_out="clear-sky OLR"
+  elif [ \$varname_in == "FSNTOA" ]; then
+    varname_out="Net TOA downwelling SW flux"
+  elif [ \$varname_in == "FSNTOAC" ]; then
+    varname_out="Clear-sky net TOA downwelling SW flux"
+  elif [ \$varname_in == "LWCOOL_TOA_TO_SURF" ]; then
+    varname_out="Column LW cooling rate"
+  elif [ \$varname_in == "P_minus_E" ]; then
+    varname_out="Precip minus Evap"
+  elif [ \$varname_in == "PRECC" ]; then
+    varname_out="Convective precip rate"
+  elif [ \$varname_in == "PRECL" ]; then
+    varname_out="Stratiform precip rate"
+  elif [ \$varname_in == "Q" ]; then
+    varname_out="Specific humidity"
+  elif [ \$varname_in == "RADCOOL_TOA_TO_SURF" ]; then
+    varname_out="Column radiative cooling rate"
+  elif [ \$varname_in == "RADSURF" ]; then
+    varname_out="Surf residual energy flux"
+  elif [ \$varname_in == "TMQ" ]; then
+    varname_out="Precipitable water"
+  elif [ \$varname_in == "FSUS" ]; then
+    varname_out="Surf upward SW flux"
+  elif [ \$varname_in == "MET" ]; then
+    varname_out="Meridional energy transport"
+  elif [ \$varname_in == "RELHUM" ]; then
+    varname_out="Relative humidity"
+  #elif [ \$varname_in == "" ]; then
+  #  varname_out=""
+  else
+    varname_out=\$varname_in
+  fi
+  echo \$varname_out
+} # end function convert_cesm_var
+
+#*** convert cesm plot type ***
+function convert_cesm_type {
+  local varname_in=\$1
+  if [ \$varname_in == "sldjflskdjflsdjflkas" ]; then
+    varname_out="sdkfjlsdjflas"
+  elif [ \$varname_in == "cn_map" ]; then
+    varname_out="Horizontal contour"
+  elif [ \$varname_in == "cn_pm" ]; then
+    varname_out="Pressure-month contour"
+  elif [ \$varname_in == "cn_pj" ]; then
+    varname_out="Pressure-latitude contour"
+  elif [ \$varname_in == "xy_annual" ]; then
+    varname_out="Annual cycle"
+  elif [ \$varname_in == "xy_profile" ]; then
+    varname_out="Profile"
+  elif [ \$varname_in == "xy_zonal" ]; then
+    varname_out="Zonal mean"
+  elif [ \$varname_in == "xy_scatter" ]; then
+    varname_out="Scatter plot"
+  #elif [ \$varname_in == "" ]; then
+  #  varname_out=""
+  else
+    varname_out=\$varname_in
+  fi
+  echo \$varname_out
+} # end function convert_cesm_type
+
+
+##################
+# program start
+##################
+
+ftemp="\$wrkdir/oojjttii.\$temp"
+ftemp01=\$ftemp.01
+ftemp02=\$ftemp.02
+ftemp03=\$ftemp.03
+ftemp_types=\$ftemp.types
+ftemp_files=\$ftemp.files
+ftemp_vars=\$ftemp.vars
+
+##################
+# program start
+##################
+
+ftemp="\$wrkdir/oojjttii.\$temp"
+ftemp01=\$ftemp.01
+ftemp02=\$ftemp.02
+ftemp03=\$ftemp.03
+ftemp_heads=\$ftemp.heads
+ftemp_types=\$ftemp.types
+ftemp_files=\$ftemp.files
+ftemp_vars=\$ftemp.vars
+ftemp_steps=\$ftemp.steps
+
+# check pngdir 
+for dir1 in \${pngdirs[@]}
+do
+  if [ ! \$dir1 ] || [ ! -d \$dir1 ]; then
+    echo "ERROR: folder [\$dir1] does not exist! program stop"
+    exit 1
+  fi
+done
+
+########################
+# option_type = "ignorant_cesm"
+#   cesm file names
+#   fig*-\$type-\$file-\$var-\$step.png, e.g. fig_E2000-cn_map-scat-TS-avg.png
+########################
+if [ \$option_type -a \$option_type == "ignorant_cesm" ]; then
+
+  # read *.png in pngdirs
+  for dir1 in \${pngdirs[@]}
+  do
+    nn=0
+    unset name_plot
+
+    ls \$dir1/*.png  > \$ftemp01
+    sed -i "s,.*/,,g" \$ftemp01  || exit 1  # remove folder so only file names left
+    #filehead=\`head -1 \$ftemp01 | cut -d '-' -f 1\`
+
+    #--------------------------------
+    # get type, file, var, and step
+    #--------------------------------
+
+    echo "get type, file, var, and step in [\$dir1] ..."
+
+    num_files=\`wc -l \$ftemp01 | cut -d ' ' -f 1\`
+    cat \$ftemp01 | awk -F "-" '{print \$1}' > \$ftemp02 && sort \$ftemp02 > \$ftemp_heads
+    cat \$ftemp01 | awk -F "-" '{print \$2}' > \$ftemp02 && sort \$ftemp02 > \$ftemp_types
+    cat \$ftemp01 | awk -F "-" '{print \$3}' > \$ftemp02 && sort \$ftemp02 > \$ftemp_files
+    cat \$ftemp01 | awk -F "-" '{print \$4}' > \$ftemp02 && sort \$ftemp02 > \$ftemp_vars
+    cat \$ftemp01 | awk -F "-" '{print \$5}' | sed 's,.png,,g' > \$ftemp02 && sort \$ftemp02 > \$ftemp_steps
+
+    head0="skldjflsajdflasjdlfasjk"
+    type0="skldjflsajdflasjdlfasjk"
+    file0="skldjflsajdflasjdlfasjk"
+    var0="skldjflsajdflasjdlfasjk"
+    step0="skldjflsajdflasjdlfasjk"
+    tt=0
+    ff=0
+    vv=0
+    ss=0
+
+    for ((i=1; i<=\$num_files; i=i+1))
+    do
+      head1=\`cat \$ftemp_heads | sed -n \$i'p'\`
+      if [ ! \$head1 == \$head0 ]; then
+        head0=\$head1
+        heads[\$tt]=\$head1
+        tt=\$((\$tt+1))
+        name_plot[\$nn]=\$head1
+        nn=\$((\$nn+1))
+      fi
+
+      type1=\`cat \$ftemp_types | sed -n \$i'p'\`
+      if [ ! \$type1 == \$type0 ]; then
+        type0=\$type1
+        types[\$tt]=\$type1
+        tt=\$((\$tt+1))
+        name_plot[\$nn]=\$type1
+        nn=\$((\$nn+1))
+      fi
+
+      file1=\`cat \$ftemp_files | sed -n \$i'p'\`
+      if [ ! \$file1 == \$file0 ]; then
+        file0=\$file1
+        files[\$ff]=\$file1
+        ff=\$((\$ff+1))
+        name_plot[\$nn]=\$file1
+        nn=\$((\$nn+1))
+      fi
+
+      var1=\`cat \$ftemp_vars | sed -n \$i'p'\`
+      if [ ! \$var1 == \$var0 ]; then
+        var0=\$var1
+        vars[\$vv]=\$var1
+        vv=\$((\$vv+1))
+        name_plot[\$nn]=\$var1
+        nn=\$((\$nn+1))
+      fi
+
+      step1=\`cat \$ftemp_steps | sed -n \$i'p'\`
+      if [ ! \$step1 == \$step0 ]; then
+        step0=\$step1
+        steps[\$ss]=\$step1
+        ss=\$((\$ss+1))
+        name_plot[\$nn]=\$step1
+        nn=\$((\$nn+1))
+      fi
+    done # end loop of all files
+
+    #echo \${heads[@]}
+    #echo \${types[@]}
+    #echo \${files[@]}
+    #echo \${vars[@]}
+    #echo \${steps[@]}
+    #echo \${name_plot[@]}
+
+    #--------------------------------------
+    # create individual html of var-file
+    #--------------------------------------
+    echo "create individual html ..."
+
+    for var1 in \${vars[@]}
+    do
+        fileout1="\${filename_out}-01_\${var1}-02_ALL_files.html"
+        #echo \$fileout1
+        cat > \$fileout1 <<EOF1
+<!DOCTYPE html>
+<html>
+<body>
+
+EOF1
+      for head1 in \${heads[@]}
+      do
+      for file1 in \${files[@]}
+      do
+        for step1 in \${steps[@]}
+        do
+          for type1 in \${types[@]}
+          do
+            file_png=\${dir1}/\${head1}-\${type1}-\${file1}-\${var1}-\${step1}-.png
+            #echo \$var1, \$file1, \$step1, \$type1
+            #echo \$file_png
+
+            var2=\$(convert_cesm_var \$var1)
+            #string2="\$var2 (\$var1), \$file1, \$step1"
+            string2_1="\$var2 (\$var1)"
+            string2_2="\$step1"
+            string2_3="\$file1"
+
+            if [ \$file_png -a -f \$file_png ]; then
+              cat >> \$fileout1 << EOF1
+<h2>\$title</h2>
+<h2>\$string2_1</h2>
+<h2>\$string2_2</h2>
+<A HREF="\$fileout_master"><font size=+1>back</A><br> 
+<img src="\$file_png">
+<hr>
+EOF1
+            fi    
+          done
+        done
+
+      done # end loop of files
+      done # end loop of heads
+
+      # end of a html file
+      cat >> \$fileout1 << EOF1
+
+</body>
+</html>
+EOF1
+
+    done # end loop of vars
+
+    #--------------------------------------
+    # create individual html of file-step
+    #--------------------------------------
+    for file1 in \${files[@]}
+    do
+        fileout1="\${filename_out}-01_\${file1}-02_ALL_files.html"
+        #echo \$fileout1
+        cat > \$fileout1 <<EOF1
+<!DOCTYPE html>
+<html>
+<body>
+EOF1
+      for step1 in \${steps[@]}
+      do
+        for head1 in \${heads[@]}
+        do
+        for var1 in \${vars[@]}
+        do
+          for type1 in \${types[@]}
+          do
+            file_png=\${dir1}/\${head1}-\${type1}-\${file1}-\${var1}-\${step1}-.png
+            #echo \$var1, \$file1, \$step1, \$type1
+            #echo \$file_png
+
+            var2=\$(convert_cesm_var \$var1)
+            #string2="\$var2 (\$var1), \$file1, \$step1"
+            string2_1="\$var2 (\$var1)"
+            string2_2="\$step1"
+            string2_3="\$file1"
+
+            if [ \$file_png -a -f \$file_png ]; then
+              cat >> \$fileout1 << EOF1
+<h2>\$title</h2>
+<h2>\$string2_1</h2>
+<h2>\$string2_2</h2>
+<A HREF="\$fileout_master"><font size=+1>back</A><br> 
+<img src="\$file_png">
+<hr>
+EOF1
+            fi    
+          done # end loop of type1
+        done   # end loop of var1
+        done   # end loop of head1
+
+      done # end loop of steps
+
+      # end of a html file
+      cat >> \$fileout1 << EOF1
+
+</body>
+</html>
+EOF1
+
+    done # end loop of files
+
+    #--------------------------------------
+    # create individual html of step-var 
+    #--------------------------------------
+    for step1 in \${steps[@]}
+    do
+        fileout1="\${filename_out}-01_\${step1}-02_ALL_steps.html"
+        #echo \$fileout1
+        cat > \$fileout1 <<EOF1
+<!DOCTYPE html>
+<html>
+<body>
+
+EOF1
+      for head1 in \${heads[@]}
+      do
+      for var1 in \${vars[@]}
+      do
+        for file1 in \${files[@]}
+        do
+          for type1 in \${types[@]}
+          do
+            file_png=\${dir1}/\${head1}-\${type1}-\${file1}-\${var1}-\${step1}-.png
+            #echo \$var1, \$file1, \$step1, \$type1
+            #echo \$file_png
+
+            var2=\$(convert_cesm_var \$var1)
+            string2="\$var2 (\$var1), \$file1, \$step1"
+            string2_1="\$var2 (\$var1)"
+            string2_2="\$step1"
+            string2_3="\$file1"
+
+            if [ \$file_png -a -f \$file_png ]; then
+              cat >> \$fileout1 << EOF1
+<h2>\$title</h2>
+<h2>\$string2_1</h2>
+<h2>\$string2_2</h2>
+<A HREF="\$fileout_master"><font size=+1>back</A><br> 
+<img src="\$file_png">
+<hr>
+EOF1
+            fi    
+          done # end loop of type1
+        done   # end loop of file1 
+
+      # end of a html file
+      cat >> \$fileout1 << EOF1
+
+</body>
+</html>
+EOF1
+
+      done # end loop of var1
+      done # end loop of head1
+    done # end loop of step1
+
+    #--------------------------------------
+    # create individual html of type
+    #--------------------------------------
+    for type1 in \${types[@]}
+    do
+        fileout1="\${filename_out}-01_\${type1}-02_ALL_types.html"
+        #echo \$fileout1
+        cat > \$fileout1 <<EOF1
+<!DOCTYPE html>
+<html>
+<body>
+
+EOF1
+      for head1 in \${heads[@]}
+      do
+      for var1 in \${vars[@]}
+      do
+        for step1 in \${steps[@]}
+        do
+          for file1 in \${files[@]}
+          do
+            file_png=\${dir1}/\${head1}-\${type1}-\${file1}-\${var1}-\${step1}-.png
+            #echo \$var1, \$file1, \$step1, \$type1
+            #echo \$file_png
+
+            var2=\$(convert_cesm_var \$var1)
+            string2="\$var2 (\$var1), \$file1, \$step1"
+            string2_1="\$var2 (\$var1)"
+            string2_2="\$step1"
+            string2_3="\$file1"
+
+            if [ \$file_png -a -f \$file_png ]; then
+              cat >> \$fileout1 << EOF1
+<h2>\$title</h2>
+<h2>\$string2_1</h2>
+<h2>\$string2_2</h2>
+<A HREF="\$fileout_master"><font size=+1>back</A><br> 
+<img src="\$file_png">
+<hr>
+EOF1
+            fi    
+          done  # end loop of file1
+        done    # end loop of step1
+
+      done # end loop of var1
+      done # end loop of head1
+
+      # end of a html file
+      cat >> \$fileout1 << EOF1
+
+</body>
+</html>
+EOF1
+
+    done # end loop of type1
+
+  #------------------------------
+  # create the master html file
+  #------------------------------
+ 
+  echo "Create the master html [\$fileout_master] ..."
+
+  cat > \$fileout_master <<EOF1
+<!DOCTYPE html>
+<html>
+<body>
+<h2>\$title</h2>
+   <A HREF="\$mainpage">back</A>
+<br>
+EOF1
+    #*** var-file html ***
+    echo "<hr>" >> \$fileout_master
+    echo "<h2>Choose variables</h2>" >> \$fileout_master
+    echo "<br>" >> \$fileout_master
+    for var1 in \${vars[@]}
+    do
+      #for file1 in \${files[@]}
+      #do
+        #fileout1="\${filename_out}-01_\${var1}-02_\${file1}.html"
+        fileout1="\${filename_out}-01_\${var1}-02_ALL_files.html"
+        var2=\$(convert_cesm_var \$var1)
+        #string2="\$var2 (\$var1), \$file1, \$step1"
+        #string2="\$var2 (\$var1), file = \$file1, step = \${steps[@]}"
+        #string2="\$var2 (\$var1), file = \$file1"
+        string2="\$var2 (\$var1)"
+
+        if [ -f \$fileout1 ]; then
+          filesize=\`ls -l \$fileout1 | cut -d ' ' -f 5\`
+          if [ \$filesize ] && [ \$filesize -gt 48 ]; then           
+            cat >> \$fileout_master << EOF1
+  <A HREF="\$fileout1"><font size=+1>\$string2</A><br> 
+EOF1
+          fi
+        fi
+
+      #done
+    done
+
+    #*** step html ***
+    echo "<hr>" >> \$fileout_master
+    echo "<h2>Choose steps</h2>" >> \$fileout_master
+    echo "<br>" >> \$fileout_master
+    for step1 in \${steps[@]}
+    do
+      #for var1 in \${vars[@]}
+      #do
+        fileout1="\${filename_out}-01_\${step1}-02_ALL_steps.html"
+        #fileout1="\${filename_out}-01_\${step1}-02_\${var1}.html"
+        var2=\$(convert_cesm_var \$var1)
+        #string2="\$var2 (\$var1), \$file1, \$step1"
+        #string2="\$step1, var = \$var2 (\$var1), file = \${files[@]}"
+        #string2="\$step1, var = \$var2 (\$var1)"
+        #string2="step = \$step1, \$var2 (\$var1)"
+        string2="\$step1"
+
+        if [ -f \$fileout1 ]; then
+          filesize=\`ls -l \$fileout1 | cut -d ' ' -f 5\`
+          if [ \$filesize ] && [ \$filesize -gt 48 ]; then           
+            cat >> \$fileout_master << EOF1
+  <A HREF="\$fileout1"><font size=+1>\$string2</A><br> 
+EOF1
+          fi
+        fi
+      #done
+    done
+
+    #*** type html ***
+    echo "<hr>" >> \$fileout_master
+    echo "<h2>Choose plot type</h2>" >> \$fileout_master
+    echo "<br>" >> \$fileout_master
+    for type1 in \${types[@]}
+    do
+      #for var1 in \${vars[@]}
+      #do
+        fileout1="\${filename_out}-01_\${type1}-02_ALL_types.html"
+        type2=\$(convert_cesm_type \$type1)
+        string2="\$type2"
+
+        if [ -f \$fileout1 ]; then
+          filesize=\`ls -l \$fileout1 | cut -d ' ' -f 5\`
+          if [ \$filesize ] && [ \$filesize -gt 48 ]; then           
+            cat >> \$fileout_master << EOF1
+  <A HREF="\$fileout1"><font size=+1>\$string2</A><br> 
+EOF1
+          fi
+        fi
+      #done
+    done
+
+    #*** file html ***
+    echo "<hr>" >> \$fileout_master
+    echo "<h2>Choose file</h2>" >> \$fileout_master
+    echo "<br>" >> \$fileout_master
+    for file1 in \${files[@]}
+    do
+      #for var1 in \${vars[@]}
+      #do
+        fileout1="\${filename_out}-01_\${file1}-02_ALL_files.html"
+        file2=\$file1
+        string2="\$file2"
+
+        if [ -f \$fileout1 ]; then
+          filesize=\`ls -l \$fileout1 | cut -d ' ' -f 5\`
+          if [ \$filesize ] && [ \$filesize -gt 48 ]; then           
+            cat >> \$fileout_master << EOF1
+  <A HREF="\$fileout1"><font size=+1>\$string2</A><br> 
+EOF1
+          fi
+        fi
+      #done
+    done
+
+  done  # end loop of pngdir
+fi # end if of option_type = "ignorant_cesm"
+
+# replace // with / to avoid webpage link problem
+sed -i 's,//,/,g' \${filename_out}*html && echo "Done. replace // to / to all \${filename_out}*html" || exit 3
+sed -i 's,http:/,http://,g' \${filename_out}*html && echo "Done. replace http all \${filename_out}*html" || exit 3
+
+echo "open [\$fileout_master] to see all figures."
+echo ""
+
+rm \$ftemp*
+
+exit 0
+EOF
+#*** case: png2html-ignorant_cesm end ***
+
+#*** case: "png2html-amwg" start ***
+elif [ $casename_work -a $casename_work == "png2html-amwg" ]; then
+cat >> $bash_name << EOF
+
+#**********************
+#  Description:
+#    create a html files that contains figures from AMWG package
+#**********************
+
+###################
+# user setting
+###################
+
+# option type
+option_type="amwg"
+
+# folders containing .png files
+pngdirs=(\\
+         "./set3"  \\
+         "./set4"  \\
+         "./set4a"  \\
+         "./set5_6"  \\
+         "./set7"  \\
+         "./set8"  \\
+         "./set10"  \\
+         )
+
+# file head of generated html files
+filename_out="gg1"
+
+# title of html files, e.g. CESM1.1.1 Year 6-35
+title="title"
+
+# work directory
+wrkdir="./"
+
+# file name of the master html file
+filename_index_all="\$wrkdir/\${filename_out}-setall-index.html"
+
+# temp variable
+temp=\`date +%Y%m%d%H%M%S\`
+
+#############################################
+# function to convert AMWG convention names
+#############################################
+
+#*** convert AMWG set names ***
+function convert_amwg_set {
+  local varname_in=\$1
+  if [ \$varname_in == "set3" ]; then
+    varname_out="Zonal mean"
+  elif [ \$varname_in == "set4" ]; then
+    varname_out="Pressure-latitude contour"
+  elif [ \$varname_in == "set4a" ]; then
+    varname_out="Pressure-longitude contour"
+  elif [ \$varname_in == "set5" ]; then
+    varname_out="Horizontal contour"
+  elif [ \$varname_in == "set6" ]; then
+    varname_out="Horizontal vector"
+  elif [ \$varname_in == "set7" ]; then
+    varname_out="Polar Horizontal contour & vector"
+  elif [ \$varname_in == "set8" ]; then
+    varname_out="Latitude-month contour"
+  elif [ \$varname_in == "set10" ]; then
+    varname_out="Annual cycle"
+  #elif [ \$varname_in == "" ]; then
+  #  varname_out=""
+  else
+    varname_out=\$varname_in
+  fi
+  echo \$varname_out
+}  # end function convert_amwg_set
+
+#*** convert AMWG variable names ***
+function convert_amwg_var {
+  local varname_in=\$1
+  if [ \$varname_in == "sldjflskdjflsdjflkas" ]; then
+    varname_out="sdkfjlsdjflas"
+  elif [ \$varname_in == "CLDICE_c" ]; then
+    varname_out="Grid-box average ice"
+  elif [ \$varname_in == "CLDLIQ_c" ]; then
+    varname_out="Grid-box average liquid"
+  elif [ \$varname_in == "CLOUD_c" ]; then
+    varname_out="Cloud fraction"
+  elif [ \$varname_in == "CWAT_c" ]; then
+    varname_out="Cloud ice+liquid"
+  elif [ \$varname_in == "EKE_c" ]; then
+    varname_out="Transient eddy KE"
+  elif [ \$varname_in == "EKE_850_c" ]; then
+    varname_out="850hPa eddy KE"
+  elif [ \$varname_in == "ICIMR_c" ]; then
+    varname_out="In-Cloud ice"
+  elif [ \$varname_in == "ICWMR_c" ]; then
+    varname_out="In-Cloud liquid"
+  elif [ \$varname_in == "OBSTAR_TBSTAR_c" ]; then
+    varname_out="Stat eddy vert heat"
+  elif [ \$varname_in == "OMEGA_c" ]; then
+    varname_out="Vertical pressure velocity"
+  elif [ \$varname_in == "OPTP_BAR_c" ]; then
+    varname_out="Transient eddy vert heat"
+  elif [ \$varname_in == "QRL_c" ]; then
+    varname_out="LW heating rate"
+  elif [ \$varname_in == "QRS_c" ]; then
+    varname_out="SW heating rate"
+  elif [ \$varname_in == "RELHUM_c" ]; then
+    varname_out="Relative humidity"
+  elif [ \$varname_in == "SHUM_c" ]; then
+    varname_out="Specific humidity"
+  elif [ \$varname_in == "TDH_c" ]; then
+    varname_out="Total diabatic heating"
+  elif [ \$varname_in == "TDM_c" ]; then
+    varname_out="Toal diabatic moistening"
+  elif [ \$varname_in == "T_c" ]; then
+    varname_out="Temperature"
+  elif [ \$varname_in == "U_c" ]; then
+    varname_out="Zonal wind"
+  elif [ \$varname_in == "VBSTAR_QBSTAR_c" ]; then
+    varname_out="Stat eddy moisture"
+  elif [ \$varname_in == "VBSTAR_TBSTAR_c" ]; then
+    varname_out="Stat eddy heat"
+  elif [ \$varname_in == "VBSTAR_UBSTAR_c" ]; then
+    varname_out="Stationary eddy momentum"
+  elif [ \$varname_in == "VPQP_BAR_c" ]; then
+    varname_out="Transient eddy moisture"
+  elif [ \$varname_in == "VPTP_BAR_c" ]; then
+    varname_out="Transient eddy heat"
+  elif [ \$varname_in == "VPUP_BAR_c" ]; then
+    varname_out="Transient eddy momentum"
+  elif [ \$varname_in == "VQ_c" ]; then
+    varname_out="Meridional water transport"
+  elif [ \$varname_in == "VT_c" ]; then
+    varname_out="Meridional heat transport"
+  elif [ \$varname_in == "ZMMSF_c" ]; then
+    varname_out="Merid stram function"
+  elif [ \$varname_in == "ALBEDOC_c" ]; then
+    varname_out="TOA clear-sky albedo"
+  elif [ \$varname_in == "ALBEDO_c" ]; then
+    varname_out="TOA albedo"
+  elif [ \$varname_in == "ALBSURF_c" ]; then
+    varname_out="Surface albedo"
+  elif [ \$varname_in == "CLDHGH_c" ]; then
+    varname_out="High-level cloud"
+  elif [ \$varname_in == "CLDLOW_c" ]; then
+    varname_out="Low-level cloud"
+  elif [ \$varname_in == "CLDMED_c" ]; then
+    varname_out="Mid-level cloud"
+  elif [ \$varname_in == "CLDTOT_c" ]; then
+    varname_out="Total cloud"
+  elif [ \$varname_in == "FLDSC_c" ]; then
+    varname_out="Surf clear-sky down LW"
+  elif [ \$varname_in == "FLDS_c" ]; then
+    varname_out="Surf downwelling LW"
+  elif [ \$varname_in == "FLNSC_c" ]; then
+    varname_out="Surf clear-sky net LW"
+  elif [ \$varname_in == "FLNS_c" ]; then
+    varname_out="Surf net LW flux"
+  elif [ \$varname_in == "FLNT_c" ]; then
+    varname_out="TOA net LW flux"
+  elif [ \$varname_in == "FSDSC_c" ]; then
+    varname_out="Clear-sky surf down SW"
+  elif [ \$varname_in == "FSDS_c" ]; then
+    varname_out="Surf downwelling SW"
+  elif [ \$varname_in == "FSNSC_c" ]; then
+    varname_out="Surf clear-sky net SW"
+  elif [ \$varname_in == "FSNS_c" ]; then
+    varname_out="Surf new SW flux"
+  elif [ \$varname_in == "FSNT_c" ]; then
+    varname_out="TOM net SW flux"
+  elif [ \$varname_in == "ICEFRAC_c" ]; then
+    varname_out="Sea ice concentraion"
+  elif [ \$varname_in == "PRECST_c" ]; then
+    varname_out="Snowfall rate"
+  elif [ \$varname_in == "PRECT_c" ]; then
+    varname_out="Precipitation rate"
+  elif [ \$varname_in == "PSL_c" ]; then
+    varname_out="Sea-level pressure"
+  elif [ \$varname_in == "PS_c" ]; then
+    varname_out="surface pressure"
+  elif [ \$varname_in == "SNOWHICE_c" ]; then
+    varname_out="Seaice snow depth water quiv"
+  elif [ \$varname_in == "SNOWHLND_c" ]; then
+    varname_out="Land snow depth water quiv"
+  elif [ \$varname_in == "STRESS_MAG_c" ]; then
+    varname_out="Surface stress magnitude"
+  elif [ \$varname_in == "TGCLDIWP_c" ]; then
+    varname_out="Total grid-box cloud IWP"
+  elif [ \$varname_in == "TGCLDLWP_c" ]; then
+    varname_out="Total grid-box cloud LWP"
+  elif [ \$varname_in == "TS_c" ]; then
+    varname_out="Surf Temp (radiative)"
+  elif [ \$varname_in == "WIND_MAG_LEV1_c" ]; then
+    varname_out="First model level wind"
+  elif [ \$varname_in == "Z3_500_c" ]; then
+    varname_out="500hPa geop height"
+  elif [ \$varname_in == "EP_c" ]; then
+    varname_out="evap-precip"
+  elif [ \$varname_in == "FLNTC_c" ]; then
+    varname_out="TOM clear-sky net LW"
+  elif [ \$varname_in == "FSNTC_c" ]; then
+    varname_out="TOM clear-sky net SW"
+  elif [ \$varname_in == "LHFLX_c" ]; then
+    varname_out="Surf latent heat flux"
+  elif [ \$varname_in == "LWCF_c" ]; then
+    varname_out="TOM LW cloud forcing"
+  elif [ \$varname_in == "PBLH_c" ]; then
+    varname_out="Planet bundry layer hgt"
+  elif [ \$varname_in == "PRECT_LAND_c" ]; then
+    varname_out="Precipitation rate over land"
+  elif [ \$varname_in == "PREH2O_c" ]; then
+    varname_out="Precipitable water"
+  elif [ \$varname_in == "QFLX_c" ]; then
+    varname_out="Surf water flux"
+  elif [ \$varname_in == "RESSURF_c" ]; then
+    varname_out="Residual surf energy"
+  elif [ \$varname_in == "RESTOM_c" ]; then
+    varname_out="TOM residual energy"
+  elif [ \$varname_in == "SHFLX_c" ]; then
+    varname_out="Surf sensible heat"
+  elif [ \$varname_in == "SOLIN_c" ]; then
+    varname_out="Insolation"
+  elif [ \$varname_in == "SWCF_c" ]; then
+    varname_out="TOM SW cloud forcing"
+  elif [ \$varname_in == "TAUX_OCEAN_c" ]; then
+    varname_out="Surface zonal stress"
+  elif [ \$varname_in == "TREFHT_c" ]; then
+    varname_out="2-meter Air Temp"
+  elif [ \$varname_in == "TREFHT_LAND_c" ]; then
+    varname_out="2-meter Air Temp over land"
+  elif [ \$varname_in == "TS_LAND_c" ]; then
+    varname_out="Surface Temp (rad) over land"
+  elif [ \$varname_in == "UBSTAR_QBSTAR_c" ]; then
+    varname_out="Stat eddy moisture"
+  elif [ \$varname_in == "UBSTAR_TBSTAR_c" ]; then
+    varname_out="Stat eddy heat"
+  elif [ \$varname_in == "U_200_c" ]; then
+    varname_out="200hPa zonal wind"
+  elif [ \$varname_in == "CHI_200_c" ]; then
+    varname_out="200hPa vel potential"
+
+  # NP or SP 
+  elif [ \$varname_in == "ALBEDOC_NP_c" ]; then
+    varname_out="TOA clear-sky albedo, North pole"
+  elif [ \$varname_in == "ALBEDOC_SP_c" ]; then
+    varname_out="TOA clear-sky albedo, South pole"
+  elif [ \$varname_in == "ALBEDO_NP_c" ]; then
+    varname_out="TOA albedo, North pole"
+  elif [ \$varname_in == "ALBEDO_SP_c" ]; then
+    varname_out="TOA albedo, South pole"
+  elif [ \$varname_in == "ALBSURF_NP_c" ]; then
+    varname_out="Surface albedo, North pole"
+  elif [ \$varname_in == "ALBSURF_SP_c" ]; then
+    varname_out="Surface albedo, South pole"
+  elif [ \$varname_in == "CLDHGH_NP_c" ]; then
+    varname_out="High-level cloud, North pole"
+  elif [ \$varname_in == "CLDHGH_SP_c" ]; then
+    varname_out="High-level cloud, South pole"
+  elif [ \$varname_in == "CLDLOW_NP_c" ]; then
+    varname_out="Low-level cloud, North pole"
+  elif [ \$varname_in == "CLDLOW_SP_c" ]; then
+    varname_out="Low-level cloud, South pole"
+  elif [ \$varname_in == "CLDMED_NP_c" ]; then
+    varname_out="Mid-level cloud, North pole"
+  elif [ \$varname_in == "CLDMED_SP_c" ]; then
+    varname_out="Mid-level cloud, South pole"
+  elif [ \$varname_in == "CLDTOT_NP_c" ]; then
+    varname_out="Total cloud, North pole"
+  elif [ \$varname_in == "CLDTOT_SP_c" ]; then
+    varname_out="Total cloud, South pole"
+  elif [ \$varname_in == "FLDSC_NP_c" ]; then
+    varname_out="Surf clear-sky down LW, North pole"
+  elif [ \$varname_in == "FLDSC_SP_c" ]; then
+    varname_out="Surf clear-sky down LW, South pole"
+  elif [ \$varname_in == "FLDS_NP_c" ]; then
+    varname_out="Surf downwelling LW, North pole"
+  elif [ \$varname_in == "FLDS_SP_c" ]; then
+    varname_out="Surf downwelling LW, South pole"
+  elif [ \$varname_in == "FLNSC_NP_c" ]; then
+    varname_out="Surf clear-sky net LW, North pole"
+  elif [ \$varname_in == "FLNSC_SP_c" ]; then
+    varname_out="Surf clear-sky net LW, South pole"
+  elif [ \$varname_in == "FLNS_NP_c" ]; then
+    varname_out="Surf net LW flux, North pole"
+  elif [ \$varname_in == "FLNS_SP_c" ]; then
+    varname_out="Surf net LW flux, South pole"
+  elif [ \$varname_in == "FLNT_NP_c" ]; then
+    varname_out="TOA net LW flux, North pole"
+  elif [ \$varname_in == "FLNT_SP_c" ]; then
+    varname_out="TOA net LW flux, South pole"
+  elif [ \$varname_in == "FSDSC_NP_c" ]; then
+    varname_out="Clear-sky surf down SW, North pole"
+  elif [ \$varname_in == "FSDSC_SP_c" ]; then
+    varname_out="Clear-sky surf down SW, South pole"
+  elif [ \$varname_in == "FSDS_NP_c" ]; then
+    varname_out="Surf downwelling SW, North pole"
+  elif [ \$varname_in == "FSDS_SP_c" ]; then
+    varname_out="Surf downwelling SW, South pole"
+  elif [ \$varname_in == "FSNSC_NP_c" ]; then
+    varname_out="Surf clear-sky net SW, North pole"
+  elif [ \$varname_in == "FSNSC_SP_c" ]; then
+    varname_out="Surf clear-sky net SW, South pole"
+  elif [ \$varname_in == "FSNS_NP_c" ]; then
+    varname_out="Surf new SW flux, North pole"
+  elif [ \$varname_in == "FSNS_SP_c" ]; then
+    varname_out="Surf new SW flux, South pole"
+  elif [ \$varname_in == "FSNT_NP_c" ]; then
+    varname_out="TOM net SW flux, North pole"
+  elif [ \$varname_in == "FSNT_SP_c" ]; then
+    varname_out="TOM net SW flux, South pole"
+  elif [ \$varname_in == "ICEFRAC_NP_c" ]; then
+    varname_out="Sea ice concentraion, North pole"
+  elif [ \$varname_in == "ICEFRAC_SP_c" ]; then
+    varname_out="Sea ice concentraion, South pole"
+  elif [ \$varname_in == "PRECST_NP_c" ]; then
+    varname_out="Snowfall rate, North pole"
+  elif [ \$varname_in == "PRECST_SP_c" ]; then
+    varname_out="Snowfall rate, South pole"
+  elif [ \$varname_in == "PRECT_NP_c" ]; then
+    varname_out="Precipitation rate, North pole"
+  elif [ \$varname_in == "PRECT_SP_c" ]; then
+    varname_out="Precipitation rate, South pole"
+  elif [ \$varname_in == "PSL_NP_c" ]; then
+    varname_out="Sea-level pressure, North pole"
+  elif [ \$varname_in == "PSL_SP_c" ]; then
+    varname_out="Sea-level pressure, South pole"
+  elif [ \$varname_in == "PS_NP_c" ]; then
+    varname_out="surface pressure, North pole"
+  elif [ \$varname_in == "PS_SP_c" ]; then
+    varname_out="surface pressure, South pole"
+  elif [ \$varname_in == "SNOWHICE_NP_c" ]; then
+    varname_out="Seaice snow depth water quiv, North pole"
+  elif [ \$varname_in == "SNOWHICE_SP_c" ]; then
+    varname_out="Seaice snow depth water quiv, South pole"
+  elif [ \$varname_in == "SNOWHLND_NP_c" ]; then
+    varname_out="Land snow depth water quiv, North pole"
+  elif [ \$varname_in == "SNOWHLND_SP_c" ]; then
+    varname_out="Land snow depth water quiv, South pole"
+  elif [ \$varname_in == "STRESS_MAG_NP_c" ]; then
+    varname_out="Surface stress magnitude, North pole"
+  elif [ \$varname_in == "STRESS_MAG_SP_c" ]; then
+    varname_out="Surface stress magnitude, South pole"
+  elif [ \$varname_in == "TGCLDIWP_NP_c" ]; then
+    varname_out="Total grid-box cloud IWP, North pole"
+  elif [ \$varname_in == "TGCLDIWP_SP_c" ]; then
+    varname_out="Total grid-box cloud IWP, South pole"
+  elif [ \$varname_in == "TGCLDLWP_NP_c" ]; then
+    varname_out="Total grid-box cloud LWP, North pole"
+  elif [ \$varname_in == "TGCLDLWP_SP_c" ]; then
+    varname_out="Total grid-box cloud LWP, South pole"
+  elif [ \$varname_in == "TS_NP_c" ]; then
+    varname_out="Surf Temp (radiative), North pole"
+  elif [ \$varname_in == "TS_SP_c" ]; then
+    varname_out="Surf Temp (radiative), South pole"
+  elif [ \$varname_in == "WIND_MAG_LEV1_NP_c" ]; then
+    varname_out="First model level wind, North pole"
+  elif [ \$varname_in == "WIND_MAG_LEV1_SP_c" ]; then
+    varname_out="First model level wind, South pole"
+  elif [ \$varname_in == "Z3_500_NP_c" ]; then
+    varname_out="500hPa geop height, North pole"
+  elif [ \$varname_in == "Z3_500_SP_c" ]; then
+    varname_out="500hPa geop height, South pole"
+
+  else
+    varname_out=\$varname_in
+  fi
+  echo \$varname_out
+} # end function convert_amwg_var
+
+##################
+# program start
+##################
+
+ftemp="\$wrkdir/ddjjttii.\$temp"
+ftemp01=\$ftemp.01
+ftemp02=\$ftemp.02
+ftemp03=\$ftemp.03
+
+# check pngdir 
+for dir1 in \${pngdirs[@]}
+do
+  if [ ! \$dir1 ] || [ ! -d \$dir1 ]; then
+    echo "ERROR: folder [\$dir1] does not exist! program stop"
+    exit 1
+  fi
+done
+
+########################
+# option_type = "amwg"
+#   amwg file names
+#   set[]-TIME-VAR_c.png. e.g. set4_ANN_ICIMR_c.png & set7_DJF_FLDSC_NP_c.png
+########################
+
+if [ \$option_type -a \$option_type == "amwg" ]; then
+
+  # number of index html
+  num_index=0
+
+  # read *.png in pngdirs
+  for dir1 in \${pngdirs[@]}
+  do
+    ls \$dir1/*.png  > \$ftemp01
+    nn=0
+    unset name_plot
+  
+### possible use: read each file ###
+#    num_files=\`wc -l \$ftemp01 | cut -d ' ' -f 1\`
+#    for((i=1; i<=\$num_files; i=i+1))
+#    do
+#      file1=\`cat \$ftemp01 | sed -n \$i'p'\`
+#      fname1=\${file1##.*/}
+#      #echo \$i,\$file1
+#      echo \$i,\$fname1
+#    done # end loop of reading each file
+### possible use: read each file ###
+
+    #----------------
+    # get set name
+    #----------------
+    file1=\`head -1 \$ftemp01\`
+    fname1=\${file1##.*/}
+    setname1=\`echo \$fname1 | cut -d '_' -f 1\`
+    #echo \$setname1
+
+    echo ""
+    echo "-------------------"
+    echo "process [\$setname1]"
+    echo "-------------------"
+    echo ""
+
+    #---------------------------------------------------------------------
+    # get all time names (e.g. ANN, JJA, etc) by greping a variable name
+    #---------------------------------------------------------------------
+    file1=\`grep ANN \$ftemp01 | sed -n 1p\`
+
+    if [ \$file1 ]; then
+      fname1=\${file1##.*/}
+      var1=\`echo \$fname1 | sed 's,.*ANN_,,g' | sed 's,.png,,g'\`
+
+      grep \$var1 \$ftemp01 > \$ftemp02  
+      num_files=\`wc -l \$ftemp02 | cut -d ' ' -f 1\`
+    else
+      num_files=0
+    fi
+
+    for((i=1; i<=\$num_files; i=i+1))
+    do
+      file1=\`cat \$ftemp02 | sed -n \$i'p'\`
+      fname1=\${file1##.*/}
+      #echo \$i,\$file1
+      #echo \$i,\$fname1
+      time1=\`echo \$fname1 | cut -d '_' -f 2\`
+      #echo \$time1
+      #var1=\`echo \$fname1 | sed 's,.*ANN_,,g' | sed 's,.png,,g'\`
+      #echo \$var1
+      name_plot[\$nn]=\${time1}
+      nn=\$((\$nn+1))
+    done # end loop of getting time names
+
+    #-----------------------------------------
+    # get all varialbe names by greping ANN
+    #-----------------------------------------
+    grep ANN \$ftemp01 > \$ftemp02  
+    num_files=\`wc -l \$ftemp02 | cut -d ' ' -f 1\`
+    option_ANN="T"
+
+    if [ \$num_files -eq 0 ];then
+      grep \$setname1 \$ftemp01 > \$ftemp02
+      num_files=\`wc -l \$ftemp02 | cut -d ' ' -f 1\`
+      option_ANN="F"
+    fi
+
+    for((i=1; i<=\$num_files; i=i+1))
+    do
+      if [ \$option_ANN == "T" ]; then
+        file1=\`cat \$ftemp02 | sed -n \$i'p'\`
+        fname1=\${file1##.*/}
+        var1=\`echo \$fname1 | sed 's,.*ANN_,,g' | sed 's,.png,,g'\`
+      elif [ \$option_ANN == "F" ]; then
+        file1=\`cat \$ftemp02 | sed -n \$i'p'\`
+        fname1=\${file1##.*/}
+        var1=\`echo \$fname1 | sed "s,.*\${setname1}_,,g" | sed 's,.png,,g'\`
+      fi
+   
+      #echo \$i,\$file1
+      #echo \$i,\$fname1
+      #echo \$var1
+      name_plot[\$nn]=\${var1}
+      nn=\$((\$nn+1))
+
+### possible use: write out all variable names into another that can be put into function convert_amwg_var ***
+#cat >> zzz1 << EOF1
+#  elif [ \\\$varname_in == "\$var1" ]; then
+#    varname_out="\$var1"
+#EOF1
+#*** write convert_amwg_var ***
+
+    done # end loop of getting variable names
+
+    #echo \${name_plot[@]}
+
+    #---------------------------------------
+    # create the index html for each set
+    #---------------------------------------
+    fileout_index="\${filename_out}-\${setname1}-index.html"
+    setname2=\$(convert_amwg_set \$setname1)  
+
+    # head of html file
+    cat > \$fileout_index <<EOF1
+<!DOCTYPE html>
+<html>
+<body>
+<h2>\$title</h2>
+<h2>\$setname2</h2>
+<A HREF="\$filename_index_all"><font size=+1>back to manu</A><br> 
+<hr>
+EOF1
+    # hyperlink to individual html file
+    for name1 in \${name_plot[@]}
+    do
+      fileout1="\${filename_out}-\${setname1}-\${name1}.html"
+      name2=\$(convert_amwg_var \$name1)
+      string2="\$name2 (\$name1)"
+      cat >> \$fileout_index << EOF1
+
+  <A HREF="\$fileout1"><font size=+3>\$string2</A><br> 
+EOF1
+    done
+
+    # end of html file
+    cat >> \$fileout_index << EOF1
+
+</body>
+</html>
+EOF1
+    # save each index html
+    files_index[\$num_index]=\$fileout_index
+    setname_index[\$num_index]=\$setname2
+    setnameO_index[\$num_index]=\$setname1
+    num_index=\$((\$num_index+1))
+
+    #----------------------------------------------------------------
+    # create the individual html for each variable, 
+    #  e.g. a html contains all CLOUR and a html contains all ANN
+    #----------------------------------------------------------------
+    for name1 in \${name_plot[@]}
+    do
+      echo "  [\$setname1, \$name1] ..."
+      grep "_\$name1" \$ftemp01 > \$ftemp02 # AMWG variable is _VAR_c, e.g. _T_c
+      num_files=\`wc -l \$ftemp02 | cut -d ' ' -f 1\`
+
+      # set the html file name
+      fileout1="\${filename_out}-\${setname1}-\${name1}.html"
+
+      # start of a html file
+      cat > \$fileout1 <<EOF1
+<!DOCTYPE html>
+<html>
+<body>
+
+EOF1
+      # add link to each png file
+      for((i=1; i<=\$num_files; i=i+1))
+      do
+        file1=\`cat \$ftemp02 | sed -n \$i'p'\`
+        fname1=\${file1##.*/}
+        #echo \$file1
+        #echo \$fname1
+
+        # get time name
+        time1=\`echo \$fname1 | cut -d '_' -f 2\`
+        if [ \$time1 == "ANN" ]; then
+          aa=0
+        elif [ \$time1 == "DJF" ]; then
+          aa=0
+        elif [ \$time1 == "MAM" ]; then
+          aa=0
+        elif [ \$time1 == "JJA" ]; then
+          aa=0
+        elif [ \$time1 == "SON" ]; then
+          aa=0
+        else
+         time1="Annual cycle"
+        fi
+
+        # get variable name
+        var1=\`echo \$fname1 | sed 's,.*ANN_,,g' | sed 's,.*DJF_,,g' | sed 's,.*MAM_,,g' | sed 's,.*JJA_,,g' | sed 's,.*SON_,,g' |sed "s,.*\${setname1}_,,g" | sed 's,.png,,g'\`
+
+        # convert read-in time and variable names
+        var2=\$(convert_amwg_var \$var1)
+        setname2=\$(convert_amwg_set \$setname1)
+
+        # set string on webpage on each figure
+        #string2="\$var2 (\$var1),  \$time1"
+        #string2="\$var1,  \$time1,  (\$var2)"
+        string2="\$var2,  \$time1,  (\$var1)"
+
+        # set image link
+        cat >> \$fileout1 << EOF1
+<!--h2>\$setname2</h2-->
+<h2>\$title</h2>
+<h2>\$string2</h2>
+<A HREF="\$fileout_index"><font size=+1>back</A><br> 
+<img src="\$file1">
+<hr>
+
+EOF1
+      done  # end loop of adding link of each png file
+
+      # end of a html file
+      cat >> \$fileout1 << EOF1
+
+</body>
+</html>
+EOF1
+
+    done # end loop of each plot, e.g. ANN, CLOUD, etc
+  done  # end loop of reading each pngdir
+
+  #echo \${files_index[@]}
+  #echo \${setname_index[@]}
+  cat > \$filename_index_all << EOF1
+<!DOCTYPE html>
+<html>
+<body>
+<h2>\$title</h2>
+   <A HREF="">back</A>
+
+EOF1
+
+  #--------------------------
+  # create the master html
+  #--------------------------
+  n1=\${#files_index[@]}
+  for ((i=0; i<\$n1; i=i+1))
+  do
+    i_plus=\$((\$i+1))
+    file1=\${files_index[\$i]}
+    set1=\${setname_index[\$i]}
+    setO=\${setnameO_index[\$i]}
+    cat >> \$filename_index_all << EOF1
+  <br>
+  <font color=red size=+3>\${i_plus} \${setO}</font> <A HREF="\${file1}"><font size=+3>\${set1}</A><font size=+1></font>
+EOF1
+  done
+
+  cat >> \$filename_index_all << EOF1
+
+</body>
+</html>
+EOF1
+  echo ""
+  echo "Done. Create [\$filename_index_all]"
+
+fi # end if of option_type="amwg"
+
+# replace // with / to avoid webpage link problem
+sed -i 's,//,/,g' \${filename_out}*html && echo "Done. replace // to / to all \${filename_out}*html" || exit 3
+
+rm \$ftemp*
+
+exit 0
+
+EOF
+#*** case: png2html-amwg end ***
+
+#*** case: "ncl_exe-command_line" start ***
+elif [ $casename_work -a $casename_work == "ncl_exe-command_line" ]; then
+cat >> $bash_name << EOF
+
+#************************
+#  Description:
+#    create commands to execute NCL files with reading inputs from command lines
+#************************
+
+###################
+# user setting
+###################
+
+### option of this script ###
+opt_run="print"  # -> print NCL command on screen
+#opt_run="execute" # -> execute these NCL commands
+#opt_run="skip_check" # skip check with users
+
+### ncl files ###
+nclfiles="plot_ScatMnoScat44-xy_zonal-Scat_noScat.ncl"
+#nclfiles=(\\
+#          "a1.ncl" \\
+#          "a2.ncl" \\
+#         )
+
+### input variable names ###
+#vars_input=("infilename_noScat" "infilename_Scat" "infilename_ScatFIR" "plotname_step" "plotname_file" "varvars")
+vars_input=("plotname_step" "plotname_file" "varvars" "filehead_Scat" "filehead_noScat")
+
+### group input variables, only support g01~g09 ###
+vars_group=("g01" "g02" "g04" "g03" "g03")
+
+#*** set choice of each input variables ***
+function read_choices_input {
+  local var_in=\$1
+
+  if [ \$var_in == "lskjdflksjdlfkjsaldflajskdfl" ]; then
+    choice_out=""
+  elif [ \$var_in == "plotname_step" ]; then
+    choice_out=("ANN" "DJF" "MAM" "JJA" "SON")
+  elif [ \$var_in == "plotname_file" ]; then
+    choice_out=("global")
+    #plotname_file=("global" "Antarctic" "midlats_SH" "tropics" "midlats_NH" "Arctic")
+    #choice_out='(/q1,q2/)'
+  elif [ \$var_in == "varvars" ]; then
+#    choice_out=(\\
+#               '(/"FLDS","FLDSC","FLUS","FSDS","FSDSC","FSNS","FSNSC","FSUS","FLUT","FLUTC","FSNTOA","FSNTOAC"/)' \\
+#               '(/"SHFLX","LHFLX","TS","TREFHT","ICEFRAC","RADSURF"/)' \\
+#               '(/"CLDLOW","CLDMED","CLDHGH","CLDTOT","LWCF","SWCF","LWCF_SURF","SWCF_SURF"/)' \\
+#               '(/"PRECT","PRECC","PRECL","EVAP","P_minus_E","TMQ","LWCOOL_TOA_TO_SURF","SWWARM_TOA_TO_SURF","RADCOOL_TOA_TO_SURF"/)' \\
+#                )
+    choice_out=(\\
+               '(/"TREFHT","FLDS"/)' \\
+                )
+  elif [ \$var_in == "filehead_Scat" ]; then
+    #choice_out="../data/h01-cesm111-FC5-mc6_rtr2_Scat.cam.h0.yy06_35-climo_"  # will be set later
+    choice_out="../data/c10-cesm111-E2000_rrtmg_mc6_rtr2.cam.h0.yy06_35-climo_"  # will be set later
+  elif [ \$var_in == "filehead_noScat" ]; then
+    #choice_out="../data/h02-cesm111-FC5-mc6_rtr2_noScat.cam.h0.yy06_35-climo_"  # will be set later
+    choice_out="../data/c11-cesm111-E2000_rrtmg_mc6_rtr2_noScat.cam.h0.yy06_35-climo_"  # will be set later
+  else
+    echo "ERROR: input variable [\$var_in] does not exist"
+    echo "program stop"
+    exit 1
+  fi
+
+  echo "\${choice_out[@]}!\${#choice_out[@]}"
+} # end read_choices_input
+
+#**********************************************
+#  Example
+#
+#    vars_input=("vv1" "vv2" "vv3")
+#    vars_group=("g01" "g01" "g02")   # vv1 & vv2 in a group
+#    vv1=("ANN"  "DJF"  "MAM"  "JJA"  "SON")
+#    vv2=("ANN0" "DJF0" "MAM0" "JJA0" "SON0")
+#    vv3=("1" "2" "3")
+#
+#    NCL commands
+#      ncl vv1=ANN vv2=ANN0 vv3=1
+#      ncl vv1=ANN vv2=ANN0 vv3=2
+#      ncl vv1=ANN vv2=ANN0 vv3=3
+#      ncl vv1=DJF vv2=DJF0 vv3=1
+#      ....
+#**********************************************
+
+##################
+# program start
+##################
+#set -x
+
+temp=\`date +%Y%m%d%H%M%S\`
+
+nvar_input=\${#vars_input[@]}
+nvar_group=\${#vars_group[@]}
+nnclfiles=\${#nclfiles[@]}
+
+#---------------------------
+# check nclfiles with user
+#---------------------------
+
+echo "------------------------"
+echo "Execute these NCL files"
+echo ""
+for ((i=0; i<\$nnclfiles; i=i+1))
+do
+  j=\$((\$i+1))
+  file1=\${nclfiles[\$i]}
+  if [ -f \$file1 ]; then 
+    echo "  input files        : \$j/\$num_infile, [\${nclfiles[\$i]}]"
+  else
+    echo "ERROR: file [\$file1] does not exist"
+    echo "Program stop"
+    exit 2
+  fi
+done
+echo "------------------------"
+
+if [ \$opt_run -a \$opt_run == "print" ]; then
+  choice="y"
+elif [ \$opt_run -a \$opt_run == "skip_check" ]; then
+  choice="y"
+else
+  read -p "Is is correct? (y/n)  " choice
+fi
+
+echo " "
+if [ ! \$choice ] || [ ! \$choice == "y" ]; then
+  echo "Cancel by user"
+  echo "program stop"
+  exit 5
+fi
+
+#--------------------------
+# read variables & groups
+#--------------------------
+
+#set -x
+
+if [ \$nvar_input -ne \$nvar_group ]; then
+  echo "ERROR: #vars_input is not equal to #vars_group"
+  echo "  vars_input: #\${nvar_input}, [\${vars_input[@]}]"
+  echo "  vars_input: #\${nvar_group}, \${vars_group[@]}"
+  exit 1
+fi
+
+# initialize number of group
+g01=1; g02=1; g03=1; g04=1; g05=1
+g06=1; g07=1; g08=1; g09=1
+
+for ((vv=0; vv<\$nvar_input; vv=vv+1))
+do
+  var1=\${vars_input[\$vv]}
+  group1=\${vars_group[\$vv]}
+
+  ppp=\$(read_choices_input \$var1)
+  choice1=\`echo \$ppp | cut -d '!' -f 1\` 
+  num1=\`echo \$ppp | cut -d '!' -f 2\` 
+  #echo \$var1, \$num1, \$ppp
+
+  # check number of group is consistent
+  if [ \$group1 == "g01" -a \$g01 -ne 1 -a \$g01 -ne \$num1 ] ; then exit_code="201" ; v00=\$v01 ; g00=\$g01 ; fi
+  if [ \$group1 == "g02" -a \$g02 -ne 1 -a \$g02 -ne \$num1 ] ; then exit_code="201" ; v00=\$v02 ; g00=\$g02 ; fi
+  if [ \$group1 == "g03" -a \$g03 -ne 1 -a \$g03 -ne \$num1 ] ; then exit_code="201" ; v00=\$v03 ; g00=\$g03 ; fi
+  if [ \$group1 == "g04" -a \$g04 -ne 1 -a \$g04 -ne \$num1 ] ; then exit_code="201" ; v00=\$v04 ; g00=\$g04 ; fi
+  if [ \$group1 == "g05" -a \$g05 -ne 1 -a \$g05 -ne \$num1 ] ; then exit_code="201" ; v00=\$v05 ; g00=\$g05 ; fi
+  if [ \$group1 == "g06" -a \$g06 -ne 1 -a \$g06 -ne \$num1 ] ; then exit_code="201" ; v00=\$v06 ; g00=\$g06 ; fi
+  if [ \$group1 == "g07" -a \$g07 -ne 1 -a \$g07 -ne \$num1 ] ; then exit_code="201" ; v00=\$v07 ; g00=\$g07 ; fi
+  if [ \$group1 == "g08" -a \$g08 -ne 1 -a \$g08 -ne \$num1 ] ; then exit_code="201" ; v00=\$v08 ; g00=\$g08 ; fi
+  if [ \$group1 == "g09" -a \$g09 -ne 1 -a \$g09 -ne \$num1 ] ; then exit_code="201" ; v00=\$v08 ; g00=\$g09 ; fi
+
+  if [ \$exit_code -a \$exit_code == "201" ]; then
+    echo "ERROR: group [\$group1] has different # of input choices"
+    echo "  var=[\$v00, \$var1], #choice=[\$g00, \$num1]"
+    echo "check function [read_choices_input] to modify"
+    echo ""
+    exit 1
+  fi
+
+  if [ \$group1 == "g01" ] ; then g01=\$num1 ; v01=\$var1 ; fi
+  if [ \$group1 == "g02" ] ; then g02=\$num1 ; v02=\$var1 ; fi
+  if [ \$group1 == "g03" ] ; then g03=\$num1 ; v03=\$var1 ; fi
+  if [ \$group1 == "g04" ] ; then g04=\$num1 ; v04=\$var1 ; fi
+  if [ \$group1 == "g05" ] ; then g05=\$num1 ; v05=\$var1 ; fi
+  if [ \$group1 == "g06" ] ; then g06=\$num1 ; v06=\$var1 ; fi
+  if [ \$group1 == "g07" ] ; then g07=\$num1 ; v07=\$var1 ; fi
+  if [ \$group1 == "g08" ] ; then g08=\$num1 ; v08=\$var1 ; fi
+  if [ \$group1 == "g09" ] ; then g09=\$num1 ; v09=\$var1 ; fi
+
+  vars_choice[\$vv]=\$choice1
+  num_choice[\$vv]=\$num1
+done
+
+# execute each nclfile
+for file1 in \${nclfiles[@]}
+do
+
+  for ((ii01=1; ii01<=\$g01; ii01=ii01+1)) ; do
+  for ((ii02=1; ii02<=\$g02; ii02=ii02+1)) ; do 
+  for ((ii03=1; ii03<=\$g03; ii03=ii03+1)) ; do 
+  for ((ii04=1; ii04<=\$g04; ii04=ii04+1)) ; do 
+  for ((ii05=1; ii05<=\$g05; ii05=ii05+1)) ; do 
+  for ((ii06=1; ii06<=\$g06; ii06=ii06+1)) ; do 
+  for ((ii07=1; ii07<=\$g07; ii07=ii07+1)) ; do 
+  for ((ii08=1; ii08<=\$g08; ii08=ii08+1)) ; do 
+  for ((ii09=1; ii09<=\$g09; ii09=ii09+1)) ; do 
+
+     print_command=""
+     exe_command=""
+     for ((vv=0; vv<\$nvar_input; vv=vv+1))
+     do
+       var1=\${vars_input[\$vv]}
+       group1=\${vars_group[\$vv]}
+       choice_all=\${vars_choice[\$vv]}
+
+       if [ \$group1 == "g01" ] ; then gg0=\$ii01 ; fi
+       if [ \$group1 == "g02" ] ; then gg0=\$ii02 ; fi
+       if [ \$group1 == "g03" ] ; then gg0=\$ii03 ; fi
+       if [ \$group1 == "g04" ] ; then gg0=\$ii04 ; fi
+       if [ \$group1 == "g05" ] ; then gg0=\$ii05 ; fi
+       if [ \$group1 == "g06" ] ; then gg0=\$ii06 ; fi
+       if [ \$group1 == "g07" ] ; then gg0=\$ii07 ; fi
+       if [ \$group1 == "g08" ] ; then gg0=\$ii08 ; fi
+       if [ \$group1 == "g09" ] ; then gg0=\$ii09 ; fi
+
+       choice1=\`echo \$choice_all | cut -d ' ' -f \$gg0\`
+       print_command="\${print_command} '\$var1=\\"\$choice1\\"'"
+       exe_command="\${exe_command} \$var1=\\"\$choice1\\""
+
+       print_command=\`echo \$print_command | sed s,\\"\\(,\\(,g | sed s,\\)\\",\\),g\`
+       exe_command=\`echo \$exe_command | sed s,\\"\\(,\\(,g | sed s,\\)\\",\\),g\`
+     done  # end loop of nvar_input
+
+     #echo \$print_command
+     #echo \$exe_command
+  
+     if [ \$opt_run -a \$opt_run == "print" ]; then
+       echo "ncl \$print_command \$file1"
+     else
+       echo ""
+       echo "ncl \$exe_command \$file1"
+       echo ""
+       ncl \$exe_command \$file1 || exit 5
+     fi
+
+  done ; done ; done ; done ; done
+  done ; done ; done ; done
+
+done  # end loop of nclfiles
+
+exit 0
+
+
+EOF
+#*** case: ncl_exe-command_line end ***
+
+#*** case "zzzz" start ***
+#*** case "zzzz" end ***
+
+fi
+
+#**********************************
+# check whether sh_name is created
+#**********************************
+
+if [ $bash_name -a -f $bash_name ]; then
+  chmod 755 $bash_name || exit 2
+  echo ' '
+  echo '------------------------------------'
+  echo "bash script name is  [$bash_name]"
+  echo "case             is  [$casename_work]"
+  echo '------------------------------------'
+
+  exit 0
+
+else
+
+  echo ""
+  echo "Fail. create bash script demo [$bash_name]"
+  exit 9
+fi
+
+exit 0
